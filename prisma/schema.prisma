@@ -25,6 +25,32 @@ model User {
   feedbackRatings FeedbackRating[]
   accounts        Account[]
   sessions        Session[]
+  skillMatrix     UserSkillMatrix?
+}
+
+// Three-Layer Skill Matrix - tracks user proficiency across learning layers
+model UserSkillMatrix {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Layer 1: Fundamentals (40-50% priority)
+  fundamentalsLevel  Int @default(1) // 1-5 average mastery
+  fundamentalsTopics Json @default("{}") // {slug: {timesSeen, mastery, lastReviewed}}
+
+  // Layer 2: Intermediate (30% priority)
+  intermediateLevel  Int @default(0)
+  intermediateTopics Json @default("{}")
+
+  // Layer 3: Patterns (20% priority)
+  patternsLevel   Int @default(0)
+  patternsMastery Json @default("{}")
+
+  // Calculated overall level
+  estimatedLevel String @default("beginner") // beginner, intermediate, advanced
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Account {
@@ -62,12 +88,14 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// Individual topic tracking (linked to curriculum.ts topics)
 model UserPattern {
   id        String @id @default(cuid())
   userId    String
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   patternName  String
+  layer        String   @default("fundamental") // fundamental, intermediate, pattern
   masteryLevel Int      @default(0) // 0-5 scale
   timesSeen    Int      @default(0)
   timesHelpful Int      @default(0)
@@ -78,6 +106,7 @@ model UserPattern {
 
   @@unique([userId, patternName])
   @@index([userId])
+  @@index([layer])
 }
 
 model Submission {
@@ -88,7 +117,8 @@ model Submission {
   code             String
   language         String // javascript, jsx, typescript, tsx
   description      String?
-  patternsDetected Json // string[]
+  patternsDetected Json // string[] - flat list for backwards compat
+  analysisResult   Json? // {fundamentals: [], intermediate: [], patterns: []} - three-layer result
   complexityScore  Int?
 
   createdAt DateTime   @default(now())
@@ -103,11 +133,12 @@ model Feedback {
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   userId       String
 
-  feedbackText  String
-  improvedCode  String?
-  patternsTaught Json // string[]
-  tokensUsed    Int
-  cost          Decimal
+  feedbackText   String
+  improvedCode   String?
+  patternsTaught Json // string[] - flat list for backwards compat
+  layersAddressed Json? // {fundamentals: number, intermediate: number, patterns: number}
+  tokensUsed     Int
+  cost           Decimal
 
   createdAt DateTime         @default(now())
   ratings   FeedbackRating[]

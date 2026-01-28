@@ -3,6 +3,207 @@
 import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
 import type { ASTPatterns } from "@/types";
+import {
+  FUNDAMENTALS,
+  INTERMEDIATE,
+  PATTERNS,
+  type CurriculumTopic,
+  type PatternTopic,
+  type LayerType,
+} from "@/lib/curriculum";
+
+// =============================================================================
+// Types for Three-Layer Analysis
+// =============================================================================
+
+export interface DetectedIssue {
+  slug: string;
+  name: string;
+  category: string;
+  description: string;
+  layer: LayerType;
+  code?: string; // Optional code snippet that triggered detection
+}
+
+export interface ThreeLayerAnalysis {
+  fundamentals: {
+    issues: DetectedIssue[];
+    count: number;
+  };
+  intermediate: {
+    issues: DetectedIssue[];
+    count: number;
+  };
+  patterns: {
+    issues: DetectedIssue[];
+    count: number;
+  };
+  // Flat list for backwards compatibility
+  allDetected: string[];
+}
+
+// =============================================================================
+// Main Three-Layer Analysis Function
+// =============================================================================
+
+/**
+ * Analyze code holistically across all three learning layers.
+ * This is the core analysis function that respects the pedagogical model.
+ */
+export async function analyzeCodeHolistically(code: string): Promise<ThreeLayerAnalysis> {
+  // Run both detection methods
+  const astPatterns = await detectPatterns(code);
+  const rulePatterns = detectRulePatterns(code);
+
+  // Combine all detected patterns
+  const allDetected = [...rulePatterns];
+
+  // Map detections to curriculum topics
+  const fundamentalIssues: DetectedIssue[] = [];
+  const intermediateIssues: DetectedIssue[] = [];
+  const patternIssues: DetectedIssue[] = [];
+
+  // Check fundamentals
+  for (const topic of FUNDAMENTALS) {
+    if (isTopicDetected(topic, rulePatterns, astPatterns)) {
+      fundamentalIssues.push({
+        slug: topic.slug,
+        name: topic.name,
+        category: topic.category,
+        description: topic.description,
+        layer: "fundamental",
+      });
+    }
+  }
+
+  // Check intermediate
+  for (const topic of INTERMEDIATE) {
+    if (isTopicDetected(topic, rulePatterns, astPatterns)) {
+      intermediateIssues.push({
+        slug: topic.slug,
+        name: topic.name,
+        category: topic.category,
+        description: topic.description,
+        layer: "intermediate",
+      });
+    }
+  }
+
+  // Check patterns
+  for (const topic of PATTERNS) {
+    if (isTopicDetected(topic, rulePatterns, astPatterns)) {
+      patternIssues.push({
+        slug: topic.slug,
+        name: topic.name,
+        category: topic.category,
+        description: topic.description,
+        layer: "pattern",
+      });
+    }
+  }
+
+  return {
+    fundamentals: {
+      issues: fundamentalIssues,
+      count: fundamentalIssues.length,
+    },
+    intermediate: {
+      issues: intermediateIssues,
+      count: intermediateIssues.length,
+    },
+    patterns: {
+      issues: patternIssues,
+      count: patternIssues.length,
+    },
+    allDetected,
+  };
+}
+
+/**
+ * Check if a curriculum topic was detected in the code
+ */
+function isTopicDetected(
+  topic: CurriculumTopic | PatternTopic,
+  rulePatterns: string[],
+  astPatterns: ASTPatterns
+): boolean {
+  // Check if any of the topic's detection patterns were found
+  if (topic.detectionPatterns) {
+    for (const pattern of topic.detectionPatterns) {
+      if (rulePatterns.includes(pattern)) {
+        return true;
+      }
+    }
+  }
+
+  // Special AST-based checks for specific topics
+  switch (topic.slug) {
+    case "closures":
+      return astPatterns.hasClosures;
+    case "async-await-basics":
+      return astPatterns.hasAsyncAwait;
+    case "useeffect-dependencies":
+      return astPatterns.hasEffectWithoutDependencies;
+    case "conditional-rendering":
+      return astPatterns.hasConditionalHooks;
+    default:
+      return false;
+  }
+}
+
+// =============================================================================
+// Prioritization Logic
+// =============================================================================
+
+export type UserLevel = "beginner" | "intermediate" | "advanced";
+
+/**
+ * Prioritize issues based on user level and the three-layer model.
+ *
+ * Key principle: Fundamentals ALWAYS come first. A beginner never sees pattern
+ * feedback if they have fundamental issues.
+ */
+export function prioritizeIssues(
+  analysis: ThreeLayerAnalysis,
+  userLevel: UserLevel
+): DetectedIssue[] {
+  const prioritized: DetectedIssue[] = [];
+
+  // ALWAYS include fundamentals first (highest priority)
+  if (analysis.fundamentals.count > 0) {
+    prioritized.push(...analysis.fundamentals.issues);
+  }
+
+  // Only add intermediate if:
+  // 1. User is NOT beginner
+  // 2. No fundamental issues exist
+  if (
+    userLevel !== "beginner" &&
+    analysis.fundamentals.count === 0 &&
+    analysis.intermediate.count > 0
+  ) {
+    prioritized.push(...analysis.intermediate.issues);
+  }
+
+  // Only add patterns if:
+  // 1. No fundamental issues
+  // 2. User is intermediate or advanced
+  // 3. Patterns were detected
+  if (
+    analysis.fundamentals.count === 0 &&
+    (userLevel === "intermediate" || userLevel === "advanced") &&
+    analysis.patterns.count > 0
+  ) {
+    prioritized.push(...analysis.patterns.issues);
+  }
+
+  // Return top 3-5 issues to focus feedback
+  return prioritized.slice(0, 5);
+}
+
+// =============================================================================
+// Original Detection Functions (kept for backwards compatibility)
+// =============================================================================
 
 /**
  * Detect code patterns using Babel AST parser.
@@ -25,7 +226,7 @@ export async function detectPatterns(code: string): Promise<ASTPatterns> {
     const ast = parser.parse(code, {
       sourceType: "module",
       plugins: ["jsx", "typescript"],
-      errorRecovery: true, // Continue parsing even with errors
+      errorRecovery: true,
     });
 
     let insideConditional = false;
@@ -52,17 +253,14 @@ export async function detectPatterns(code: string): Promise<ASTPatterns> {
         ) {
           const methodName = callee.property.name;
 
-          // Promise patterns
           if (methodName === "then") {
             patterns.hasPromises = true;
           }
 
-          // Array mutations on state
           if (["push", "pop", "shift", "unshift", "splice"].includes(methodName)) {
             patterns.hasMutations = true;
           }
 
-          // Check for hooks
           if (callee.object.type === "Identifier") {
             const hookName = callee.object.name;
             if (hookName.startsWith("use") && insideConditional) {
@@ -71,18 +269,15 @@ export async function detectPatterns(code: string): Promise<ASTPatterns> {
           }
         }
 
-        // Detect hook calls
         if (
           callee.type === "Identifier" &&
           callee.name.startsWith("use")
         ) {
-          // Check for useEffect without dependencies
           if (callee.name === "useEffect") {
             const args = path.node.arguments;
             if (args.length === 1) {
               patterns.hasEffectWithoutDependencies = true;
             }
-            // Check if callback has a return (cleanup)
             if (args[0] && args[0].type === "ArrowFunctionExpression") {
               const body = args[0].body;
               if (body.type === "BlockStatement") {
@@ -96,14 +291,13 @@ export async function detectPatterns(code: string): Promise<ASTPatterns> {
             }
           }
 
-          // Conditional hooks
           if (insideConditional) {
             patterns.hasConditionalHooks = true;
           }
         }
       },
 
-      // Detect closures (functions inside functions)
+      // Detect closures
       FunctionDeclaration(path) {
         if (path.findParent((p) => p.isFunctionDeclaration() || p.isFunctionExpression())) {
           patterns.hasClosures = true;
@@ -145,12 +339,10 @@ export async function detectPatterns(code: string): Promise<ASTPatterns> {
         },
       },
 
-      // Detect unhandled promise rejections (await without try/catch)
       TryStatement(path) {
-        // If there's a try/catch with await inside, it's handled
         path.traverse({
           AwaitExpression() {
-            // This await is inside try/catch, mark as handled
+            // Await inside try/catch is handled
           },
         });
       },
@@ -159,7 +351,6 @@ export async function detectPatterns(code: string): Promise<ASTPatterns> {
     patterns.hasUseEffectCleanup = hasUseEffectReturn;
   } catch (error) {
     console.error("AST parsing error:", error);
-    // Return empty patterns on parse error - still allow review
   }
 
   return patterns;
@@ -167,25 +358,70 @@ export async function detectPatterns(code: string): Promise<ASTPatterns> {
 
 /**
  * Rule-based pattern detection for common issues.
- * Complements AST analysis with string-based heuristics.
+ * Returns pattern slugs that match curriculum topics.
  */
 export function detectRulePatterns(code: string): string[] {
   const patterns: string[] = [];
 
-  // State mutation with useState
+  // ===================
+  // FUNDAMENTALS
+  // ===================
+
+  // var usage (should use const/let)
+  if (code.match(/\bvar\s+/)) {
+    patterns.push("var-usage");
+  }
+
+  // == instead of ===
+  if (code.match(/[^=!]==[^=]/)) {
+    patterns.push("loose-equality");
+  }
+
+  // Missing error handling in async
+  if (code.includes("async") && !code.includes("catch") && !code.includes("try")) {
+    patterns.push("missing-error-handling");
+  }
+
+  // State mutation with useState (push, splice, etc.)
   if (
-    (code.includes(".push(") || code.includes(".splice(")) &&
+    (code.includes(".push(") || code.includes(".splice(") ||
+     code.includes(".sort(") || code.includes("[") && code.includes("] =")) &&
     code.includes("useState")
   ) {
     patterns.push("state-mutation");
   }
 
+  // Missing key prop in map
+  if (code.includes(".map(") && !code.includes("key=") && !code.includes("key:")) {
+    patterns.push("missing-key");
+  }
+
+  // Index as key
+  if (code.match(/key=\{(index|i|idx)\}/)) {
+    patterns.push("index-as-key");
+  }
+
+  // Implicit global (assignment without declaration)
+  // This is a simple heuristic - AST would be more accurate
+  const lines = code.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (
+      /^[a-zA-Z_$][\w$]*\s*=/.test(trimmed) &&
+      !/^(const|let|var|function|class|export|import|return|if|else|for|while)/.test(trimmed) &&
+      !trimmed.includes('.')
+    ) {
+      patterns.push("implicit-global");
+      break;
+    }
+  }
+
+  // ===================
+  // INTERMEDIATE
+  // ===================
+
   // useEffect without dependency array
-  if (
-    code.includes("useEffect") &&
-    !code.includes("[]") &&
-    !code.includes("[")
-  ) {
+  if (code.includes("useEffect(") && code.match(/useEffect\([^,]+\)[;\s]*$/m)) {
     patterns.push("missing-effect-dependency");
   }
 
@@ -201,10 +437,19 @@ export function detectRulePatterns(code: string): string[] {
     patterns.push("callback-hell");
   }
 
-  // Missing error handling in async
-  if (code.includes("async") && !code.includes("catch") && !code.includes("try")) {
-    patterns.push("missing-error-handling");
+  // Fetch without error handling
+  if (code.includes("fetch(") && !code.includes(".catch(") && !code.includes("try")) {
+    patterns.push("fetch-no-error-handling");
   }
+
+  // Loop with var (closure issue)
+  if (code.match(/for\s*\([^)]*var[^)]*\)\s*\{[^}]*function/)) {
+    patterns.push("loop-closure");
+  }
+
+  // ===================
+  // PATTERNS (Advanced)
+  // ===================
 
   // Direct DOM manipulation in React
   if (
@@ -224,14 +469,10 @@ export function detectRulePatterns(code: string): string[] {
     patterns.push("console-log-remaining");
   }
 
-  // var usage (should use const/let)
-  if (code.match(/\bvar\s+/)) {
-    patterns.push("var-usage");
-  }
-
-  // == instead of ===
-  if (code.match(/[^=!]==[^=]/)) {
-    patterns.push("loose-equality");
+  // Too many useState calls (might need useReducer)
+  const useStateMatches = code.match(/useState\(/g);
+  if (useStateMatches && useStateMatches.length > 5) {
+    patterns.push("complex-state-logic");
   }
 
   return patterns;
@@ -247,13 +488,11 @@ export function calculateComplexity(
 ): number {
   let score = 1;
 
-  // AST-based complexity
   if (astPatterns.hasAsyncAwait) score += 1;
   if (astPatterns.hasPromises) score += 0.5;
   if (astPatterns.hasClosures) score += 0.5;
   if (astPatterns.hasEffectWithoutDependencies) score += 0.5;
 
-  // Rule-based complexity
   if (rulePatterns.includes("promise-chaining")) score += 0.5;
   if (rulePatterns.includes("callback-hell")) score += 1;
 
