@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subscriptionTier String @default("free") // free, pro
+  reviewsThisMonth Int    @default(0)
+  lastReviewReset  DateTime @default(now())
+
+  submissions     Submission[]
+  patterns        UserPattern[]
+  feedbackRatings FeedbackRating[]
+  accounts        Account[]
+  sessions        Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model UserPattern {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  patternName  String
+  masteryLevel Int      @default(0) // 0-5 scale
+  timesSeen    Int      @default(0)
+  timesHelpful Int      @default(0)
+  lastReviewed DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, patternName])
+  @@index([userId])
+}
+
+model Submission {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  code             String
+  language         String // javascript, jsx, typescript, tsx
+  description      String?
+  patternsDetected Json // string[]
+  complexityScore  Int?
+
+  createdAt DateTime   @default(now())
+  feedback  Feedback[]
+
+  @@index([userId])
+}
+
+model Feedback {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  userId       String
+
+  feedbackText  String
+  improvedCode  String?
+  patternsTaught Json // string[]
+  tokensUsed    Int
+  cost          Decimal
+
+  createdAt DateTime         @default(now())
+  ratings   FeedbackRating[]
+
+  @@index([userId])
+}
+
+model FeedbackRating {
+  id         String   @id @default(cuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  helpful Boolean
+  note    String?
+
+  createdAt DateTime @default(now())
+}
+
+model Pattern {
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
+  description String?
+  category    String // javascript-fundamentals, react-patterns, async, etc.
+
+  prerequisites      Json? // string[] - pattern slugs
+  difficulty         Int      @default(1) // 1-5
+  commonMistakes     String?
+  learningResources  Json? // { title: string, url: string }[]
+
+  createdAt DateTime @default(now())
+}
