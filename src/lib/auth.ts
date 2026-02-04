@@ -82,7 +82,7 @@ export async function getCurrentUser() {
       email: true,
       name: true,
       subscriptionTier: true,
-      reviewsThisMonth: true,
+      monthlyReviewsUsed: true,
     },
   });
 }

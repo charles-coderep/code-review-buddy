@@ -1,85 +1,61 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { hashPassword, signIn } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { hashPassword } from "@/lib/auth";
 
-export interface SignUpInput {
+export async function signUp(input: {
   email: string;
   password: string;
   name?: string;
-}
-
-export interface AuthResult {
-  success: boolean;
-  error?: string;
-}
-
-/**
- * Register a new user.
- */
-export async function signUp(input: SignUpInput): Promise<AuthResult> {
+}): Promise<{ success: boolean; error?: string }> {
   try {
-    // Validate input
-    if (!input.email || !input.password) {
+    const { email, password, name } = input;
+
+    if (!email || !password) {
       return { success: false, error: "Email and password are required" };
     }
 
-    if (input.password.length < 8) {
-      return { success: false, error: "Password must be at least 8 characters" };
+    if (password.length < 8) {
+      return {
+        success: false,
+        error: "Password must be at least 8 characters",
+      };
     }
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: input.email.toLowerCase() },
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
     });
 
-    if (existingUser) {
+    if (existing) {
       return { success: false, error: "An account with this email already exists" };
     }
 
     // Hash password and create user
-    const passwordHash = await hashPassword(input.password);
+    const passwordHash = await hashPassword(password);
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
-        email: input.email.toLowerCase(),
+        email,
         passwordHash,
-        name: input.name,
+        name: name || null,
+      },
+    });
+
+    // Create initial progress record
+    await prisma.userProgress.create({
+      data: {
+        userId: user.id,
       },
     });
 
     return { success: true };
   } catch (error) {
     console.error("Signup error:", error);
-    return { success: false, error: "Failed to create account" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create account",
+    };
   }
-}
-
-/**
- * Sign in with credentials.
- */
-export async function signInWithCredentials(
-  email: string,
-  password: string
-): Promise<AuthResult> {
-  try {
-    await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    return { success: true };
-  } catch (error) {
-    console.error("Sign in error:", error);
-    return { success: false, error: "Invalid email or password" };
-  }
-}
-
-/**
- * Redirect to dashboard after successful auth.
- */
-export async function redirectToDashboard() {
-  redirect("/dashboard");
 }

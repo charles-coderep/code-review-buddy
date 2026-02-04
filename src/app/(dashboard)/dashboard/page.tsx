@@ -1,179 +1,175 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { REVIEW_LIMITS } from "@/types";
+import { getDashboardData } from "@/app/actions/user";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { LayerProgressCard } from "@/components/ui/layer-progress-card";
+import { AlertTriangle, Code, BarChart3, Trophy, Layers } from "lucide-react";
 
 export default async function DashboardPage() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+  const result = await getDashboardData();
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      name: true,
-      subscriptionTier: true,
-      reviewsThisMonth: true,
-    },
-  });
+  if (!result.success || !result.data) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">
+          {result.error ?? "Failed to load dashboard"}
+        </p>
+      </div>
+    );
+  }
 
-  const [totalReviews, recentFeedback, patterns] = await Promise.all([
-    prisma.submission.count({ where: { userId: session.user.id } }),
-    prisma.feedback.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: {
-        submission: { select: { language: true, createdAt: true } },
-      },
-    }),
-    prisma.userPattern.findMany({
-      where: { userId: session.user.id },
-      orderBy: { masteryLevel: "desc" },
-      take: 10,
-    }),
-  ]);
-
-  const tier = (user?.subscriptionTier || "free") as keyof typeof REVIEW_LIMITS;
-  const limit = REVIEW_LIMITS[tier];
-  const reviewsUsed = user?.reviewsThisMonth || 0;
-  const reviewsRemaining = limit === Infinity ? "Unlimited" : limit - reviewsUsed;
+  const { user, progress, stuckSummary } = result.data;
 
   return (
     <div className="space-y-8">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">
-          Welcome back{user?.name ? `, ${user.name}` : ""}!
-        </h1>
-        <p className="text-slate-400 mt-2">
-          Track your progress and continue learning
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-          <p className="text-slate-400 text-sm">Total Reviews</p>
-          <p className="text-3xl font-bold text-white mt-1">{totalReviews}</p>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-          <p className="text-slate-400 text-sm">Reviews This Month</p>
-          <p className="text-3xl font-bold text-white mt-1">{reviewsUsed}</p>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-          <p className="text-slate-400 text-sm">Reviews Remaining</p>
-          <p className="text-3xl font-bold text-white mt-1">{reviewsRemaining}</p>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-          <p className="text-slate-400 text-sm">Patterns Tracked</p>
-          <p className="text-3xl font-bold text-white mt-1">{patterns.length}</p>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex gap-4">
-        <Link
-          href="/review"
-          className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
-        >
-          + New Review
-        </Link>
-        <Link
-          href="/pattern-library"
-          className="px-6 py-3 border border-slate-600 text-white font-semibold rounded-lg hover:bg-slate-800 transition"
-        >
-          Browse Patterns
-        </Link>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Recent Reviews */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
-            Recent Reviews
-          </h2>
-          {recentFeedback.length === 0 ? (
-            <p className="text-slate-400">
-              No reviews yet.{" "}
-              <Link href="/review" className="text-blue-400 hover:underline">
-                Submit your first code
-              </Link>
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {recentFeedback.map((fb) => (
-                <div
-                  key={fb.id}
-                  className="p-3 bg-slate-900 rounded-lg border border-slate-700"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-400">
-                      {fb.submission.language}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {new Date(fb.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-slate-300 text-sm mt-1 line-clamp-2">
-                    {fb.feedbackText.slice(0, 100)}...
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Pattern Progress */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
-            Pattern Progress
-          </h2>
-          {patterns.length === 0 ? (
-            <p className="text-slate-400">
-              Patterns will appear here as you get reviews
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {patterns.map((pattern) => (
-                <div key={pattern.id} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 text-sm">
-                        {pattern.patternName.replace(/-/g, " ")}
-                      </span>
-                      <span className="text-slate-500 text-xs">
-                        {pattern.masteryLevel}/5
-                      </span>
-                    </div>
-                    <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 rounded-full transition-all"
-                        style={{ width: `${(pattern.masteryLevel / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Upgrade CTA for free users */}
-      {tier === "free" && (
-        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/30 p-6">
-          <h3 className="text-xl font-semibold text-white">
-            Upgrade to Pro for Unlimited Reviews
-          </h3>
-          <p className="text-slate-300 mt-2">
-            Get unlimited reviews, full learning memory, and access to the
-            complete pattern library.
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">
+            Welcome back{user.name ? `, ${user.name}` : ""}
+          </h1>
+          <p className="text-muted-foreground">
+            Here&apos;s your skill overview
           </p>
-          <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-            Upgrade for £9/month
-          </button>
         </div>
+        <Badge variant="outline" className="capitalize">
+          {user.subscriptionTier}
+        </Badge>
+      </div>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              Sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{progress.totalReviews}</div>
+            <p className="text-xs text-muted-foreground">
+              {user.reviewsRemaining} remaining this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Level
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold capitalize">
+              {progress.estimatedLevel}
+            </div>
+            <p className="text-xs text-muted-foreground">Estimated skill level</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Layer
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold capitalize">
+              {progress.currentLayer.toLowerCase()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {progress.nextUnlock
+                ? `Next: ${progress.nextUnlock.toLowerCase()}`
+                : "All layers unlocked"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Topics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {progress.fundamentals.attemptedTopics +
+                progress.intermediate.attemptedTopics +
+                progress.patterns.attemptedTopics}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              of{" "}
+              {progress.fundamentals.totalTopics +
+                progress.intermediate.totalTopics +
+                progress.patterns.totalTopics}{" "}
+              attempted
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Stuck topics alert */}
+      {stuckSummary.stuckCount > 0 && (
+        <Card className="border-destructive/50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+              <div>
+                <p className="font-medium">
+                  You&apos;re stuck on {stuckSummary.stuckCount} topic
+                  {stuckSummary.stuckCount !== 1 ? "s" : ""}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {stuckSummary.mostUrgent
+                    ? `Most urgent: ${stuckSummary.mostUrgent.name}. `
+                    : ""}
+                  Submit code to get targeted coaching.
+                </p>
+                {stuckSummary.atRiskCount > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stuckSummary.atRiskCount} more topic
+                    {stuckSummary.atRiskCount !== 1 ? "s" : ""} at risk
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Layer progress */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Layer Progress</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <LayerProgressCard
+            layer="FUNDAMENTALS"
+            data={progress.fundamentals}
+            isCurrentLayer={progress.currentLayer === "FUNDAMENTALS"}
+          />
+          <LayerProgressCard
+            layer="INTERMEDIATE"
+            data={progress.intermediate}
+            isCurrentLayer={progress.currentLayer === "INTERMEDIATE"}
+          />
+          <LayerProgressCard
+            layer="PATTERNS"
+            data={progress.patterns}
+            isCurrentLayer={progress.currentLayer === "PATTERNS"}
+          />
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="text-center pt-4">
+        <Button size="lg" asChild>
+          <Link href="/review">Get Coaching on Your Code</Link>
+        </Button>
+      </div>
     </div>
   );
 }

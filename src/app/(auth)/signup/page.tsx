@@ -1,135 +1,141 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signUp } from "@/app/actions/auth";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { signUp } from "@/app/actions/auth";
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    try {
-      const result = await signUp({ email, password, name });
+    const formData = new FormData(e.currentTarget);
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
 
-      if (!result.success) {
-        setError(result.error || "Failed to create account");
-        setLoading(false);
-        return;
-      }
-
-      // Auto sign in after successful signup
-      const signInResult = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (signInResult?.error) {
-        // Account created but couldn't sign in - redirect to login
-        router.push("/login");
-      } else {
-        router.push("/dashboard");
-        router.refresh();
-      }
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       setLoading(false);
+      return;
     }
-  };
+
+    const result = await signUp({
+      email: formData.get("email") as string,
+      password,
+      name: (formData.get("name") as string) || undefined,
+    });
+
+    if (!result.success) {
+      setError(result.error ?? "Failed to create account");
+      setLoading(false);
+      return;
+    }
+
+    // Auto sign in after signup
+    const signInResult = await signIn("credentials", {
+      email: formData.get("email") as string,
+      password,
+      redirect: false,
+    });
+
+    if (signInResult?.error) {
+      setError("Account created but failed to sign in. Please try logging in.");
+      setLoading(false);
+    } else {
+      router.push("/");
+      router.refresh();
+    }
+  }
 
   return (
-    <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-white">Create Account</h1>
-        <p className="text-slate-400 mt-2">Start improving your code today</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-2 rounded-lg text-sm">
-            {error}
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-2xl">Create Account</CardTitle>
+        <CardDescription>
+          Start tracking your JavaScript and React skills
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+              {error}
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="name">Name (optional)</Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Your name"
+              autoComplete="name"
+            />
           </div>
-        )}
-
-        <div>
-          <label htmlFor="name" className="block text-sm text-slate-300 mb-1">
-            Name (optional)
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-            placeholder="Your name"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm text-slate-300 mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-            placeholder="you@example.com"
-            required
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm text-slate-300 mb-1"
-          >
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-            placeholder="Min 8 characters"
-            minLength={8}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-        >
-          {loading ? "Creating account..." : "Create Account"}
-        </button>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Creating account..." : "Create Account"}
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
       </form>
-
-      <p className="text-center text-slate-400 mt-6">
-        Already have an account?{" "}
-        <Link href="/login" className="text-blue-400 hover:underline">
-          Sign in
-        </Link>
-      </p>
-
-      <p className="text-center text-slate-500 text-sm mt-4">
-        5 free reviews per month included
-      </p>
-    </div>
+    </Card>
   );
 }

@@ -7,52 +7,148 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String?
-  name          String?
-  image         String?
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  passwordHash       String?
+  name               String?
+  subscriptionTier   String   @default("free") // free | pro
+  monthlyReviewsUsed Int      @default(0)
+  displayFrameworks  String[] @default(["js", "react"])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // NextAuth fields
   emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  image         String?
 
-  subscriptionTier String @default("free") // free, pro
-  reviewsThisMonth Int    @default(0)
-  lastReviewReset  DateTime @default(now())
-
-  submissions     Submission[]
-  patterns        UserPattern[]
-  feedbackRatings FeedbackRating[]
-  accounts        Account[]
-  sessions        Session[]
-  skillMatrix     UserSkillMatrix?
+  // Relations
+  skillMatrix        UserSkillMatrix[]
+  performanceHistory PerformanceHistory[]
+  submissions        Submission[]
+  feedback           Feedback[]
+  misconceptions     Misconception[]
+  progress           UserProgress?
+  accounts           Account[]
+  sessions           Session[]
 }
 
-// Three-Layer Skill Matrix - tracks user proficiency across learning layers
+model Topic {
+  id                Int      @id @default(autoincrement())
+  slug              String   @unique
+  name              String
+  layer             String   // FUNDAMENTALS | INTERMEDIATE | PATTERNS
+  category          String
+  frameworkAffinity String   // js-pure | react-specific | shared
+  criticality       String   @default("medium") // critical | high | medium | low
+  parentTopicId     Int?
+  prerequisites     Int[]    @default([])
+  detectionRules    Json?
+
+  // Relations
+  parentTopic        Topic?              @relation("TopicHierarchy", fields: [parentTopicId], references: [id])
+  childTopics        Topic[]             @relation("TopicHierarchy")
+  skillMatrix        UserSkillMatrix[]
+  performanceHistory PerformanceHistory[]
+}
+
 model UserSkillMatrix {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  topicId          Int
+  rating           Float     @default(1500)
+  rd               Float     @default(350)
+  volatility       Float     @default(0.06)
+  timesEncountered Int       @default(0)
+  lastPracticed    DateTime?
+  isStuck          Boolean   @default(false)
+  stuckSince       DateTime?
 
-  // Layer 1: Fundamentals (40-50% priority)
-  fundamentalsLevel  Int @default(1) // 1-5 average mastery
-  fundamentalsTopics Json @default("{}") // {slug: {timesSeen, mastery, lastReviewed}}
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id])
 
-  // Layer 2: Intermediate (30% priority)
-  intermediateLevel  Int @default(0)
-  intermediateTopics Json @default("{}")
-
-  // Layer 3: Patterns (20% priority)
-  patternsLevel   Int @default(0)
-  patternsMastery Json @default("{}")
-
-  // Calculated overall level
-  estimatedLevel String @default("beginner") // beginner, intermediate, advanced
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@id([userId, topicId])
 }
 
+model PerformanceHistory {
+  id               Int      @id @default(autoincrement())
+  userId           String
+  topicId          Int
+  submissionId     String
+  performanceScore Float    // 0.0 - 1.0
+  errorType        String?  // SLIP | MISTAKE | MISCONCEPTION
+  ratingBefore     Float
+  ratingAfter      Float
+  rdBefore         Float
+  rdAfter          Float
+  createdAt        DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic      Topic      @relation(fields: [topicId], references: [id])
+  submission Submission @relation(fields: [submissionId], references: [id])
+}
+
+model Submission {
+  id           String   @id @default(cuid())
+  userId       String
+  code         String
+  language     String   // javascript | typescript | jsx | tsx
+  description  String?
+  analysisData Json?    // includes framework context
+  createdAt    DateTime @default(now())
+
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedback           Feedback[]
+  performanceHistory PerformanceHistory[]
+}
+
+model Feedback {
+  id             String   @id @default(cuid())
+  submissionId   String
+  userId         String
+  feedbackText   String
+  analysisLayers Json?
+  stuckTopics    Json?
+  tokensUsed     Int      @default(0)
+  cost           Decimal  @default(0)
+  createdAt      DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Misconception {
+  id            Int       @id @default(autoincrement())
+  userId        String
+  pattern       String    // e.g., "Thinks setState is synchronous"
+  evidenceCount Int       @default(1)
+  firstSeen     DateTime  @default(now())
+  lastSeen      DateTime  @default(now())
+  isResolved    Boolean   @default(false)
+  resolvedAt    DateTime?
+  relatedTopics Int[]     @default([])
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserProgress {
+  userId                 String    @id
+  fundamentalsRating     Float     @default(1500)
+  fundamentalsRd         Float     @default(350)
+  intermediateRating     Float     @default(1500)
+  intermediateRd         Float     @default(350)
+  patternsRating         Float     @default(1500)
+  patternsRd             Float     @default(350)
+  intermediateUnlocked   Boolean   @default(false)
+  intermediateUnlockedAt DateTime?
+  patternsUnlocked       Boolean   @default(false)
+  patternsUnlockedAt     DateTime?
+  totalReviews           Int       @default(0)
+  lastReviewAt           DateTime?
+  estimatedLevel         String    @default("beginner") // beginner | intermediate | advanced
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth.js models
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -86,90 +182,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-// Individual topic tracking (linked to curriculum.ts topics)
-model UserPattern {
-  id        String @id @default(cuid())
-  userId    String
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  patternName  String
-  layer        String   @default("fundamental") // fundamental, intermediate, pattern
-  masteryLevel Int      @default(0) // 0-5 scale
-  timesSeen    Int      @default(0)
-  timesHelpful Int      @default(0)
-  lastReviewed DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, patternName])
-  @@index([userId])
-  @@index([layer])
-}
-
-model Submission {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  code             String
-  language         String // javascript, jsx, typescript, tsx
-  description      String?
-  patternsDetected Json // string[] - flat list for backwards compat
-  analysisResult   Json? // {fundamentals: [], intermediate: [], patterns: []} - three-layer result
-  complexityScore  Int?
-
-  createdAt DateTime   @default(now())
-  feedback  Feedback[]
-
-  @@index([userId])
-}
-
-model Feedback {
-  id           String     @id @default(cuid())
-  submissionId String
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  userId       String
-
-  feedbackText   String
-  improvedCode   String?
-  patternsTaught Json // string[] - flat list for backwards compat
-  layersAddressed Json? // {fundamentals: number, intermediate: number, patterns: number}
-  tokensUsed     Int
-  cost           Decimal
-
-  createdAt DateTime         @default(now())
-  ratings   FeedbackRating[]
-
-  @@index([userId])
-}
-
-model FeedbackRating {
-  id         String   @id @default(cuid())
-  feedbackId String
-  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-
-  helpful Boolean
-  note    String?
-
-  createdAt DateTime @default(now())
-}
-
-model Pattern {
-  id          String @id @default(cuid())
-  name        String @unique
-  slug        String @unique
-  description String?
-  category    String // javascript-fundamentals, react-patterns, async, etc.
-
-  prerequisites      Json? // string[] - pattern slugs
-  difficulty         Int      @default(1) // 1-5
-  commonMistakes     String?
-  learningResources  Json? // { title: string, url: string }[]
-
-  createdAt DateTime @default(now())
 }
