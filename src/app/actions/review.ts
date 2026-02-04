@@ -13,7 +13,7 @@ import { classifyError, calculatePerformanceScore, type PerformanceRecord } from
 import { checkAndUpdateStuckStatus, getStuckTopics } from "@/lib/stuckDetection";
 import { findWeakestPrerequisite } from "@/lib/prerequisites";
 import { checkAndUnlockLayers, updateLayerRatings } from "@/lib/progression";
-import { generateFeedbackWithFallback, getScaffoldingLevel, type GrokRequest } from "@/lib/grok";
+import { generateFeedbackWithFallback, getScaffoldingLevel, type GrokRequest, type TopicScore } from "@/lib/grok";
 import { SUBSCRIPTION, DISPLAY } from "@/lib/constants";
 
 // =============================================
@@ -50,6 +50,33 @@ export interface ReviewResult {
     issuesCount: number;
     positiveCount: number;
     topicsDetected: string[];
+  };
+  engineDetails?: {
+    language: string;
+    isReact: boolean;
+    parseErrors: number;
+    detections: Array<{
+      topicSlug: string;
+      detected: boolean;
+      isPositive: boolean;
+      isNegative: boolean;
+      isIdiomatic: boolean;
+      details?: string;
+      location?: { line: number; column: number };
+    }>;
+    performanceScores: Array<{
+      topicSlug: string;
+      score: number;
+      positiveCount: number;
+      negativeCount: number;
+      idiomaticCount: number;
+    }>;
+    aiEvaluations: Array<{
+      slug: string;
+      score: number;
+      reason: string;
+    }>;
+    scoringSource: "ai" | "ast-fallback";
   };
 }
 
@@ -112,21 +139,80 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
       },
     });
 
-    // 5. Score each detected topic and update ratings
+    // 5. Prepare AST fallback scores (used if AI scoring unavailable)
     const topicPerformances = scoreTopicPerformance(analysis.detections);
     const skillChanges: ReviewResult["skillChanges"] = [];
 
-    // Get topic slugs to IDs mapping
-    const topicSlugs = topicPerformances.map((p) => p.topicSlug);
+    // Build unique detected topics list for Grok
+    const detectedTopicSlugs = [...new Set(analysis.detections.map((d) => d.topicSlug))];
+    const detectedTopics = detectedTopicSlugs.map((slug) => {
+      const detection = analysis.detections.find((d) => d.topicSlug === slug);
+      return { slug, location: detection?.location };
+    });
+
+    // Get topic slugs to IDs mapping (from all detected topics)
+    const topicSlugs = detectedTopicSlugs;
     const topics = await prisma.topic.findMany({
       where: { slug: { in: topicSlugs } },
       select: { id: true, slug: true, name: true },
     });
     const topicMap = new Map(topics.map((t) => [t.slug, t]));
 
-    // Update ratings for each topic
-    for (const performance of topicPerformances) {
-      const topic = topicMap.get(performance.topicSlug);
+    // 6. Get stuck topics for feedback context
+    const stuckTopics = await getStuckTopics(userId);
+
+    // 7. Find weakest prerequisite if there are issues
+    let weakPrerequisite = null;
+    if (analysis.issuesFound.length > 0) {
+      const firstIssueTopic = topicMap.get(analysis.issuesFound[0].topicSlug);
+      if (firstIssueTopic) {
+        weakPrerequisite = await findWeakestPrerequisite(userId, firstIssueTopic.id);
+      }
+    }
+
+    // 8. Get user progress for scaffolding
+    const userProgress = await prisma.userProgress.findUnique({
+      where: { userId },
+    });
+
+    const overallRating = userProgress?.fundamentalsRating ?? 1500;
+    const scaffoldingLevel = getScaffoldingLevel(overallRating);
+
+    // 9. Generate Grok feedback (moved before rating updates to get AI scores)
+    const prioritizedIssues = prioritizeIssues(analysis.detections, DISPLAY.MAX_ISSUES_PER_REVIEW);
+
+    const grokRequest: GrokRequest = {
+      code: input.code,
+      language: analysis.parsed.language,
+      issues: prioritizedIssues.map((i) => ({
+        topicSlug: i.topicSlug,
+        details: i.details ?? "Issue detected",
+      })),
+      positiveFindings: analysis.positiveFindings.slice(0, 3).map((p) => ({
+        topicSlug: p.topicSlug,
+        details: p.details ?? "Good usage",
+      })),
+      detectedTopics,
+      userContext: {
+        overallRating,
+        scaffoldingLevel,
+        stuckTopics,
+        weakPrerequisite,
+        estimatedLevel: userProgress?.estimatedLevel ?? "beginner",
+        isReact: analysis.parsed.isReact,
+      },
+    };
+
+    const grokResponse = await generateFeedbackWithFallback(grokRequest);
+
+    // 10. Determine scoring source: AI scores (primary) or AST fallback
+    const aiScores = grokResponse.topicScores;
+    const useAiScoring = aiScores.length > 0;
+    const aiScoreMap = new Map(aiScores.map((s) => [s.slug, s]));
+
+    // 11. Update ratings for each detected topic using AI or AST scores
+    for (const topicSlug of detectedTopicSlugs) {
+      const topic = topicMap.get(topicSlug);
       if (!topic) continue;
 
       // Get or create user skill
@@ -164,29 +250,54 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
         createdAt: h.createdAt,
       }));
 
-      // Classify error if there's a negative detection
       let errorType: "SLIP" | "MISTAKE" | "MISCONCEPTION" | null = null;
-      let performanceScore = performance.score;
+      let performanceScore: number;
 
-      if (performance.negativeCount > 0) {
-        const classification = classifyError(
-          {
-            rating: skill.rating,
-            rd: skill.rd,
-            volatility: skill.volatility,
-            timesEncountered: skill.timesEncountered,
-          },
-          performance.negativeCount === 1 && performance.score > 0.5, // trivial if minor
-          historyRecords
-        );
-        errorType = classification.errorType;
-        performanceScore = classification.performanceScore;
-      } else if (performance.positiveCount > 0) {
-        // Positive performance
-        performanceScore = calculatePerformanceScore(
-          performance.idiomaticCount > 0 ? "perfect" : "clean",
-          performance.idiomaticCount > 0
-        );
+      const aiScore = aiScoreMap.get(topicSlug);
+
+      if (useAiScoring && aiScore) {
+        // AI-driven scoring: use AI score directly
+        performanceScore = aiScore.score;
+
+        // Classify errors for low AI scores
+        if (aiScore.score < 0.5) {
+          const classification = classifyError(
+            {
+              rating: skill.rating,
+              rd: skill.rd,
+              volatility: skill.volatility,
+              timesEncountered: skill.timesEncountered,
+            },
+            aiScore.score >= 0.3, // trivial if score is 0.3 (significant mistake, not fundamental)
+            historyRecords
+          );
+          errorType = classification.errorType;
+          performanceScore = classification.performanceScore;
+        }
+      } else {
+        // AST fallback scoring (original behavior)
+        const performance = topicPerformances.find((p) => p.topicSlug === topicSlug);
+        performanceScore = performance?.score ?? 0.5;
+
+        if (performance && performance.negativeCount > 0) {
+          const classification = classifyError(
+            {
+              rating: skill.rating,
+              rd: skill.rd,
+              volatility: skill.volatility,
+              timesEncountered: skill.timesEncountered,
+            },
+            performance.negativeCount === 1 && performance.score > 0.5,
+            historyRecords
+          );
+          errorType = classification.errorType;
+          performanceScore = classification.performanceScore;
+        } else if (performance && performance.positiveCount > 0) {
+          performanceScore = calculatePerformanceScore(
+            performance.idiomaticCount > 0 ? "perfect" : "clean",
+            performance.idiomaticCount > 0
+          );
+        }
       }
 
       // Update Glicko-2 rating
@@ -240,57 +351,11 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
       await checkAndUpdateStuckStatus(userId, topic.id);
     }
 
-    // 6. Check progression unlocks
+    // 12. Check progression unlocks
     const progressionResult = await checkAndUnlockLayers(userId);
     await updateLayerRatings(userId);
 
-    // 7. Get stuck topics for feedback context
-    const stuckTopics = await getStuckTopics(userId);
-
-    // 8. Find weakest prerequisite if there are issues
-    let weakPrerequisite = null;
-    if (analysis.issuesFound.length > 0) {
-      const firstIssueTopic = topicMap.get(analysis.issuesFound[0].topicSlug);
-      if (firstIssueTopic) {
-        weakPrerequisite = await findWeakestPrerequisite(userId, firstIssueTopic.id);
-      }
-    }
-
-    // 9. Get user progress for scaffolding
-    const userProgress = await prisma.userProgress.findUnique({
-      where: { userId },
-    });
-
-    const overallRating = userProgress?.fundamentalsRating ?? 1500;
-    const scaffoldingLevel = getScaffoldingLevel(overallRating);
-
-    // 10. Generate Grok feedback
-    const prioritizedIssues = prioritizeIssues(analysis.detections, DISPLAY.MAX_ISSUES_PER_REVIEW);
-
-    const grokRequest: GrokRequest = {
-      code: input.code,
-      language: analysis.parsed.language,
-      issues: prioritizedIssues.map((i) => ({
-        topicSlug: i.topicSlug,
-        details: i.details ?? "Issue detected",
-      })),
-      positiveFindings: analysis.positiveFindings.slice(0, 3).map((p) => ({
-        topicSlug: p.topicSlug,
-        details: p.details ?? "Good usage",
-      })),
-      userContext: {
-        overallRating,
-        scaffoldingLevel,
-        stuckTopics,
-        weakPrerequisite,
-        estimatedLevel: userProgress?.estimatedLevel ?? "beginner",
-        isReact: analysis.parsed.isReact,
-      },
-    };
-
-    const grokResponse = await generateFeedbackWithFallback(grokRequest);
-
-    // 11. Store feedback
+    // 13. Store feedback
     const feedback = await prisma.feedback.create({
       data: {
         submissionId: submission.id,
@@ -306,7 +371,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
       },
     });
 
-    // 12. Update user review count
+    // 14. Update user review count
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -325,7 +390,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
       },
     });
 
-    // 13. Return result
+    // 15. Return result
     return {
       success: true,
       feedback: {
@@ -345,6 +410,33 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
         issuesCount: analysis.issuesFound.length,
         positiveCount: analysis.positiveFindings.length,
         topicsDetected: analysis.topicsDetected,
+      },
+      engineDetails: {
+        language: analysis.parsed.language,
+        isReact: analysis.parsed.isReact,
+        parseErrors: analysis.parsed.errors.length,
+        detections: analysis.detections.map((d) => ({
+          topicSlug: d.topicSlug,
+          detected: d.detected,
+          isPositive: d.isPositive,
+          isNegative: d.isNegative,
+          isIdiomatic: d.isIdiomatic,
+          details: d.details,
+          location: d.location,
+        })),
+        performanceScores: topicPerformances.map((p) => ({
+          topicSlug: p.topicSlug,
+          score: Math.round(p.score * 100) / 100,
+          positiveCount: p.positiveCount,
+          negativeCount: p.negativeCount,
+          idiomaticCount: p.idiomaticCount,
+        })),
+        aiEvaluations: aiScores.map((s) => ({
+          slug: s.slug,
+          score: s.score,
+          reason: s.reason,
+        })),
+        scoringSource: useAiScoring ? "ai" : "ast-fallback",
       },
     };
   } catch (error) {

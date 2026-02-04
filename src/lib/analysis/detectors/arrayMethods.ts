@@ -34,6 +34,7 @@ interface CallExpression {
 
 /**
  * Detect array.map() usage
+ * Checks: callback exists, is a function, and returns a value
  */
 export function detectArrayMap(ast: File): ArrayMethodDetection[] {
   const detections: ArrayMethodDetection[] = [];
@@ -47,19 +48,44 @@ export function detectArrayMap(ast: File): ArrayMethodDetection[] {
       callee.property?.name === "map"
     ) {
       const hasCallback = node.arguments.length > 0;
-      const firstArg = node.arguments[0] as { type?: string } | undefined;
+      const firstArg = node.arguments[0] as {
+        type?: string;
+        body?: { type?: string; body?: unknown[] };
+        expression?: boolean;
+      } | undefined;
       const isArrowOrFunction =
         firstArg?.type === "ArrowFunctionExpression" ||
         firstArg?.type === "FunctionExpression";
 
+      let hasReturn = true;
+      let details: string | undefined;
+
+      if (isArrowOrFunction && firstArg) {
+        if (firstArg.type === "ArrowFunctionExpression" && firstArg.body?.type !== "BlockStatement") {
+          hasReturn = true;
+          details = "map() with implicit return";
+        } else if (firstArg.body?.type === "BlockStatement") {
+          hasReturn = hasReturnStatement(firstArg.body);
+          if (!hasReturn) {
+            details = "map() callback has no return statement — will produce array of undefined";
+          } else {
+            details = "map() with callback";
+          }
+        }
+      } else if (!hasCallback) {
+        details = "map() called without callback";
+      }
+
+      const isCorrectUsage = hasCallback && isArrowOrFunction && hasReturn;
+
       detections.push({
         topicSlug: "array-map",
         detected: true,
-        isPositive: hasCallback && isArrowOrFunction,
-        isNegative: !hasCallback,
-        isIdiomatic: isArrowOrFunction,
+        isPositive: isCorrectUsage,
+        isNegative: !hasCallback || (isArrowOrFunction && !hasReturn),
+        isIdiomatic: isCorrectUsage,
+        details,
         location: getNodeLocation(node) ?? undefined,
-        details: hasCallback ? "map() used with callback" : "map() called without callback",
       });
     }
   });
@@ -68,7 +94,28 @@ export function detectArrayMap(ast: File): ArrayMethodDetection[] {
 }
 
 /**
+ * Check if a function body has an explicit return statement
+ */
+function hasReturnStatement(node: unknown): boolean {
+  if (!node || typeof node !== "object") return false;
+  const n = node as Record<string, unknown>;
+  if (n.type === "ReturnStatement") return true;
+  // Check if/else branches, blocks, etc.
+  for (const value of Object.values(n)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (hasReturnStatement(item)) return true;
+      }
+    } else if (value && typeof value === "object") {
+      if (hasReturnStatement(value)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Detect array.filter() usage
+ * Checks: callback exists, is a function, and returns a value
  */
 export function detectArrayFilter(ast: File): ArrayMethodDetection[] {
   const detections: ArrayMethodDetection[] = [];
@@ -82,17 +129,44 @@ export function detectArrayFilter(ast: File): ArrayMethodDetection[] {
       callee.property?.name === "filter"
     ) {
       const hasCallback = node.arguments.length > 0;
-      const firstArg = node.arguments[0] as { type?: string } | undefined;
+      const firstArg = node.arguments[0] as {
+        type?: string;
+        body?: { type?: string; body?: unknown[] };
+        expression?: boolean;
+      } | undefined;
       const isArrowOrFunction =
         firstArg?.type === "ArrowFunctionExpression" ||
         firstArg?.type === "FunctionExpression";
 
+      // Check if callback actually returns a value
+      let hasReturn = true; // assume true for non-block arrows (implicit return)
+      let details: string | undefined;
+
+      if (isArrowOrFunction && firstArg) {
+        if (firstArg.type === "ArrowFunctionExpression" && firstArg.body?.type !== "BlockStatement") {
+          // Arrow with expression body (implicit return) — always returns
+          hasReturn = true;
+          details = "filter() with implicit return";
+        } else if (firstArg.body?.type === "BlockStatement") {
+          // Block body — check for explicit return
+          hasReturn = hasReturnStatement(firstArg.body);
+          if (!hasReturn) {
+            details = "filter() callback has no return statement — will always return undefined (falsy)";
+          } else {
+            details = "filter() with callback";
+          }
+        }
+      }
+
+      const isCorrectUsage = hasCallback && isArrowOrFunction && hasReturn;
+
       detections.push({
         topicSlug: "array-filter",
         detected: true,
-        isPositive: hasCallback && isArrowOrFunction,
-        isNegative: !hasCallback,
-        isIdiomatic: isArrowOrFunction,
+        isPositive: isCorrectUsage,
+        isNegative: !hasCallback || (isArrowOrFunction && !hasReturn),
+        isIdiomatic: isCorrectUsage,
+        details,
         location: getNodeLocation(node) ?? undefined,
       });
     }

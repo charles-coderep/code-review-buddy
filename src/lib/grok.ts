@@ -22,6 +22,10 @@ export interface GrokRequest {
     topicSlug: string;
     details: string;
   }>;
+  detectedTopics: Array<{
+    slug: string;
+    location?: { line: number; column: number };
+  }>;
   userContext: UserContext;
 }
 
@@ -34,10 +38,17 @@ export interface UserContext {
   isReact: boolean;
 }
 
+export interface TopicScore {
+  slug: string;
+  score: number;
+  reason: string;
+}
+
 export interface GrokResponse {
   feedbackText: string;
   tokensUsed: number;
   cost: number;
+  topicScores: TopicScore[];
 }
 
 // =============================================
@@ -70,7 +81,9 @@ IMPORTANT RULES:
 4. Be encouraging but honest about issues
 5. Focus on the "why" not just the "what"
 6. Limit feedback to 2-3 key points to avoid overwhelming
-7. Suggest what to practice next based on weak areas`;
+7. Suggest what to practice next based on weak areas
+8. Do NOT include a title or top-level heading — just start with the feedback content directly
+9. Keep responses concise and actionable`;
 
   const scaffoldingInstructions = {
     HIGH: `
@@ -99,9 +112,24 @@ SCAFFOLDING LEVEL: LOW (Advanced)
 - Reference advanced patterns and concepts`,
   };
 
+  const scoringInstruction = `
+TOPIC SCORING:
+After your coaching feedback, you MUST include a TOPIC_SCORES block with your assessment of each detected topic. Format:
+
+\`\`\`TOPIC_SCORES
+[
+  { "slug": "array-filter", "score": 0.0, "reason": "callback has no return statement" },
+  { "slug": "let-const-usage", "score": 1.0, "reason": "correctly using const for array" }
+]
+\`\`\`
+
+Score guide: 1.0 = perfect/idiomatic, 0.8 = correct but not idiomatic, 0.6 = minor issue, 0.3 = significant mistake, 0.0 = fundamental misunderstanding or broken`;
+
   return `${basePrompt}
 
-${scaffoldingInstructions[scaffoldingLevel]}`;
+${scaffoldingInstructions[scaffoldingLevel]}
+
+${scoringInstruction}`;
 }
 
 /**
@@ -141,7 +169,7 @@ Consider addressing this foundational gap before diving deep into the current to
  * Build the user prompt for Grok
  */
 export function buildUserPrompt(request: GrokRequest): string {
-  const { code, language, issues, positiveFindings, userContext } = request;
+  const { code, language, issues, positiveFindings, detectedTopics, userContext } = request;
 
   let prompt = `## Code to Review (${language}${userContext.isReact ? "/React" : ""})
 
@@ -149,13 +177,17 @@ export function buildUserPrompt(request: GrokRequest): string {
 ${code.slice(0, API_CONFIG.MAX_CODE_LENGTH)}
 \`\`\`
 
-## Analysis Results
+## Detected Topics
+The following topics were found in the code by AST analysis. Evaluate each for correctness:
+${detectedTopics.map((t) => `- ${t.slug}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
 
-### Issues Found (${issues.length}):
-${issues.length > 0 ? issues.map((i) => `- **${i.topicSlug}**: ${i.details}`).join("\n") : "No significant issues detected"}
+## AST Analysis Context
 
-### Positive Patterns (${positiveFindings.length}):
-${positiveFindings.length > 0 ? positiveFindings.map((p) => `- **${p.topicSlug}**: ${p.details}`).join("\n") : "Limited positive patterns detected"}
+### Issues Flagged by AST (${issues.length}):
+${issues.length > 0 ? issues.map((i) => `- **${i.topicSlug}**: ${i.details}`).join("\n") : "No structural issues flagged"}
+
+### Positive Patterns Flagged by AST (${positiveFindings.length}):
+${positiveFindings.length > 0 ? positiveFindings.map((p) => `- **${p.topicSlug}**: ${p.details}`).join("\n") : "Limited positive patterns flagged"}
 
 ## User Context
 - Estimated Level: ${userContext.estimatedLevel}
@@ -183,10 +215,46 @@ Provide pedagogical feedback on this code. Remember:
 3. Ask guiding questions rather than giving answers
 4. Acknowledge what they did well
 5. Be encouraging but honest
+6. After your coaching text, include the TOPIC_SCORES block scoring EVERY detected topic listed above
 
 Format your response in markdown with clear sections.`;
 
   return prompt;
+}
+
+// =============================================
+// Score Parsing
+// =============================================
+
+/**
+ * Extract TOPIC_SCORES JSON block from AI response text
+ */
+export function parseTopicScores(text: string): TopicScore[] {
+  const match = text.match(/```TOPIC_SCORES\n([\s\S]*?)```/);
+  if (!match) return [];
+  try {
+    const parsed = JSON.parse(match[1]);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item: unknown): item is TopicScore =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as TopicScore).slug === "string" &&
+        typeof (item as TopicScore).score === "number" &&
+        typeof (item as TopicScore).reason === "string" &&
+        (item as TopicScore).score >= 0 &&
+        (item as TopicScore).score <= 1
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Remove the TOPIC_SCORES block from text so it isn't shown to the user
+ */
+export function stripScoresBlock(text: string): string {
+  return text.replace(/\n*```TOPIC_SCORES\n[\s\S]*?```\n*/g, "").trimEnd();
 }
 
 // =============================================
@@ -231,8 +299,12 @@ export async function generateFeedback(request: GrokRequest): Promise<GrokRespon
 
     const data = await response.json();
 
-    const feedbackText = data.choices?.[0]?.message?.content ?? "Unable to generate feedback";
+    const rawText = data.choices?.[0]?.message?.content ?? "Unable to generate feedback";
     const tokensUsed = data.usage?.total_tokens ?? 0;
+
+    // Parse topic scores from response and strip the block from display text
+    const topicScores = parseTopicScores(rawText);
+    const feedbackText = stripScoresBlock(rawText);
 
     // Estimate cost (Grok pricing - adjust as needed)
     // Assuming ~$0.002 per 1K tokens for estimation
@@ -242,6 +314,7 @@ export async function generateFeedback(request: GrokRequest): Promise<GrokRespon
       feedbackText,
       tokensUsed,
       cost,
+      topicScores,
     };
   } catch (error) {
     console.error("Grok API error:", error);
@@ -314,9 +387,23 @@ function generateMockFeedback(request: GrokRequest): GrokResponse {
     feedback += `**Starting question:** Can you explain in your own words what you think ${stuck.topic.name} is supposed to do?\n`;
   }
 
+  // Generate fallback topic scores from AST detections
+  const issueSlugs = new Set(issues.map((i) => i.topicSlug));
+  const positiveSlugs = new Set(positiveFindings.map((p) => p.topicSlug));
+  const topicScores: TopicScore[] = request.detectedTopics.map((t) => {
+    if (issueSlugs.has(t.slug)) {
+      return { slug: t.slug, score: 0.3, reason: "AST flagged issue (mock fallback)" };
+    }
+    if (positiveSlugs.has(t.slug)) {
+      return { slug: t.slug, score: 0.8, reason: "AST flagged positive (mock fallback)" };
+    }
+    return { slug: t.slug, score: 0.5, reason: "Detected but not evaluated (mock fallback)" };
+  });
+
   return {
     feedbackText: feedback,
     tokensUsed: 0,
     cost: 0,
+    topicScores,
   };
 }

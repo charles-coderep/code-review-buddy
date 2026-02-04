@@ -418,12 +418,51 @@ RD increases over time without practice (τ = 0.5). Topic mastered 6 months ago:
 
 ---
 
-## Detection Rules (AST Pattern Examples)
+## Analysis Architecture
 
-**array-map:** CallExpression with callee.property.name === "map" and function argument
-**jsx-keys:** In mapped JSX, check for "key" attribute. Missing = negative. Index as key = negative. item.id = idiomatic.
-**async-await-error-handling:** AwaitExpression not inside TryStatement = negative
-**usestate-basics:** CallExpression callee.name === "useState", check array destructuring
+### Separation of Concerns: Detection vs Evaluation
+
+The analysis pipeline has two distinct responsibilities that must be handled by different systems:
+
+**1. Topic Detection (AST — Babel Parser)**
+- **Role:** Identify which of the 98 topics appear in the submitted code
+- **How:** Walk the AST looking for structural patterns (CallExpressions, JSX elements, hook usage, etc.)
+- **Output:** List of detected topic slugs with line/column locations
+- **Strength:** Fast, free, deterministic, reliable at finding what patterns exist
+- **Limitation:** Cannot assess correctness, semantics, or logic errors. Only sees structure.
+
+**2. Topic Evaluation (AI — Grok)**
+- **Role:** Assess whether each detected topic is used correctly and score it
+- **How:** Receives the code + list of detected topics, returns structured per-topic scores
+- **Output:** Per-topic performance scores (0.0-1.0) that drive Glicko-2 rating updates
+- **Strength:** Understands semantics, catches logic errors, missing returns, wrong variable references, misuse of APIs
+- **Why needed:** AST pattern matching cannot determine if `.filter()` is used correctly — only that it's present. The AI can see that a filter callback with no return produces an empty array.
+
+**Pipeline flow:**
+```
+Code → AST Detection (which topics?) → AI Evaluation (used correctly?) → Glicko-2 Update (rating change) → Save
+```
+
+The AST should NOT score positive/negative — it should only report topic presence. The AI returns structured JSON with per-topic assessments that the Glicko-2 system uses for rating updates.
+
+### AST Detection Rules (Pattern Examples)
+
+**array-map:** CallExpression with callee.property.name === "map" → topic present
+**jsx-keys:** In mapped JSX, check for "key" attribute → topic present
+**async-await-error-handling:** AwaitExpression found → topic present
+**usestate-basics:** CallExpression callee.name === "useState" → topic present
+
+### AI Evaluation Response Format
+The AI should return structured JSON alongside coaching text:
+```json
+{
+  "topicScores": [
+    { "slug": "array-filter", "score": 0.0, "reason": "filter callback has no return" },
+    { "slug": "let-const-usage", "score": 1.0, "reason": "correctly using const" },
+    { "slug": "arrow-functions", "score": 0.8, "reason": "correct usage but could use implicit return" }
+  ]
+}
+```
 
 ### Framework Context Detection
 React signals: React imports, hook usage (useState, useEffect), JSX elements
