@@ -18,6 +18,31 @@ import { detectStatePatterns } from "./detectors/statePatterns";
 import { detectAdvancedReactPatterns } from "./detectors/advancedReactPatterns";
 import { detectErrorBoundaries } from "./detectors/errorBoundaries";
 
+// ESLint detector
+import { analyzeWithESLint } from "./eslintDetector";
+
+// Data flow detector
+import { analyzeDataFlow } from "./dataFlowDetector";
+
+// New expanded detectors
+import { detectArrayMutationMethods } from "./detectors/arrayMutationMethods";
+import { detectStringMethods } from "./detectors/stringMethods";
+import { detectObjectMethods } from "./detectors/objectMethods";
+import { detectNumberMath } from "./detectors/numberMath";
+import { detectJsonOperations } from "./detectors/jsonOperations";
+import { detectModernOperators } from "./detectors/modernOperators";
+import { detectControlFlow } from "./detectors/controlFlow";
+import { detectClassSyntax } from "./detectors/classSyntax";
+import { detectModulePatterns } from "./detectors/modulePatterns";
+import { detectMapSetCollections } from "./detectors/mapSetCollections";
+import { detectTimersScheduling } from "./detectors/timersScheduling";
+import { detectDateHandling } from "./detectors/dateHandling";
+import { detectRegexPatterns } from "./detectors/regexPatterns";
+import { detectDomOperations } from "./detectors/domOperations";
+import { detectBrowserApis } from "./detectors/browserApis";
+import { detectObserverApis } from "./detectors/observerApis";
+import { detectAntiPatterns } from "./detectors/antiPatterns";
+
 // =============================================
 // Types
 // =============================================
@@ -31,6 +56,7 @@ export interface Detection {
   isTrivial?: boolean;
   location?: { line: number; column: number };
   details?: string;
+  source?: "babel" | "eslint" | "dataflow";
 }
 
 export interface AnalysisResult {
@@ -93,6 +119,25 @@ export function analyzeCode(
   allDetections.push(...detectFunctionPatterns(parsed.ast));
   allDetections.push(...detectLoopsAndContext(parsed.ast));
 
+  // Expanded JS detectors (always run)
+  allDetections.push(...detectArrayMutationMethods(parsed.ast));
+  allDetections.push(...detectStringMethods(parsed.ast));
+  allDetections.push(...detectObjectMethods(parsed.ast));
+  allDetections.push(...detectNumberMath(parsed.ast));
+  allDetections.push(...detectJsonOperations(parsed.ast));
+  allDetections.push(...detectModernOperators(parsed.ast));
+  allDetections.push(...detectControlFlow(parsed.ast));
+  allDetections.push(...detectClassSyntax(parsed.ast));
+  allDetections.push(...detectModulePatterns(parsed.ast));
+  allDetections.push(...detectMapSetCollections(parsed.ast));
+  allDetections.push(...detectTimersScheduling(parsed.ast));
+  allDetections.push(...detectDateHandling(parsed.ast));
+  allDetections.push(...detectRegexPatterns(parsed.ast));
+  allDetections.push(...detectDomOperations(parsed.ast));
+  allDetections.push(...detectBrowserApis(parsed.ast));
+  allDetections.push(...detectObserverApis(parsed.ast));
+  allDetections.push(...detectAntiPatterns(parsed.ast));
+
   // Run React detectors if React is detected
   if (parsed.isReact) {
     allDetections.push(...detectReactHooks(parsed.ast));
@@ -103,6 +148,19 @@ export function analyzeCode(
     allDetections.push(...detectAdvancedReactPatterns(parsed.ast));
     allDetections.push(...detectErrorBoundaries(parsed.ast));
   }
+
+  // Tag all Babel detections with source
+  for (const d of allDetections) {
+    d.source = "babel";
+  }
+
+  // Run ESLint detectors on the raw code
+  const eslintDetections = analyzeWithESLint(code, parsed.isReact, parsed.hasTypeScript);
+  allDetections.push(...eslintDetections);
+
+  // Run data flow detectors on the AST
+  const dataFlowDetections = analyzeDataFlow(parsed.ast, parsed.isReact);
+  allDetections.push(...dataFlowDetections);
 
   // Build summary
   const positiveFindings = allDetections.filter((d) => d.isPositive && !d.isNegative);
@@ -278,6 +336,7 @@ export function serializeAnalysis(analysis: AnalysisResult): object {
       isTrivial: d.isTrivial,
       location: d.location,
       details: d.details,
+      source: d.source,
     })),
     topicsDetected: analysis.topicsDetected,
   };

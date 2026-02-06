@@ -1,0 +1,2434 @@
+[
+  {
+    "slug": "eslint-no-async-promise-executor",
+    "name": "Disallow using an async function as a Promise executor",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Async",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-async-promise-executor",
+      "type": "problem",
+      "description": "Disallow using an async function as a Promise executor",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-case-declarations",
+    "name": "Disallow lexical declarations in case clauses",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-case-declarations",
+      "type": "suggestion",
+      "description": "Disallow lexical declarations in case clauses",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-delete-var",
+    "name": "Disallow deleting variables",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-delete-var",
+      "type": "suggestion",
+      "description": "Disallow deleting variables",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-extra-boolean-cast",
+    "name": "Disallow unnecessary boolean casts",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-extra-boolean-cast",
+      "type": "suggestion",
+      "description": "Disallow unnecessary boolean casts",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-global-assign",
+    "name": "Disallow assignments to native objects or read-only globa...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-global-assign",
+      "type": "suggestion",
+      "description": "Disallow assignments to native objects or read-only global variables",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-octal",
+    "name": "Disallow octal literals",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-octal",
+      "type": "suggestion",
+      "description": "Disallow octal literals",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-with",
+    "name": "Disallow `with` statements",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-with",
+      "type": "suggestion",
+      "description": "Disallow `with` statements",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-require-yield",
+    "name": "Require generator functions to contain `yield`",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "require-yield",
+      "type": "suggestion",
+      "description": "Require generator functions to contain `yield`",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-constructor-super",
+    "name": "Require `super()` calls in constructors",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "constructor-super",
+      "type": "problem",
+      "description": "Require `super()` calls in constructors",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-class-assign",
+    "name": "Disallow reassigning class members",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-class-assign",
+      "type": "problem",
+      "description": "Disallow reassigning class members",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-dupe-class-members",
+    "name": "Disallow duplicate class members",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-dupe-class-members",
+      "type": "problem",
+      "description": "Disallow duplicate class members",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-new-native-nonconstructor",
+    "name": "Disallow `new` operators with global non-constructor func...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-new-native-nonconstructor",
+      "type": "problem",
+      "description": "Disallow `new` operators with global non-constructor functions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unused-private-class-members",
+    "name": "Disallow unused private class members",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unused-private-class-members",
+      "type": "problem",
+      "description": "Disallow unused private class members",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-getter-return",
+    "name": "Enforce `return` statements in getters",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Control Flow",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "getter-return",
+      "type": "problem",
+      "description": "Enforce `return` statements in getters",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-setter-return",
+    "name": "Disallow returning values from setters",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Control Flow",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-setter-return",
+      "type": "problem",
+      "description": "Disallow returning values from setters",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-compare-neg-zero",
+    "name": "Disallow comparing against `-0`",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-compare-neg-zero",
+      "type": "problem",
+      "description": "Disallow comparing against `-0`",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-cond-assign",
+    "name": "Disallow assignment operators in conditional expressions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-cond-assign",
+      "type": "problem",
+      "description": "Disallow assignment operators in conditional expressions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-const-assign",
+    "name": "Disallow reassigning `const`, `using`, and `await using` ...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-const-assign",
+      "type": "problem",
+      "description": "Disallow reassigning `const`, `using`, and `await using` variables",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-constant-binary-expression",
+    "name": "Disallow expressions where the operation doesn't affect t...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-constant-binary-expression",
+      "type": "problem",
+      "description": "Disallow expressions where the operation doesn't affect the value",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-constant-condition",
+    "name": "Disallow constant expressions in conditions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-constant-condition",
+      "type": "problem",
+      "description": "Disallow constant expressions in conditions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-debugger",
+    "name": "Disallow the use of `debugger`",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-debugger",
+      "type": "problem",
+      "description": "Disallow the use of `debugger`",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-dupe-args",
+    "name": "Disallow duplicate arguments in `function` definitions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-dupe-args",
+      "type": "problem",
+      "description": "Disallow duplicate arguments in `function` definitions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-dupe-else-if",
+    "name": "Disallow duplicate conditions in if-else-if chains",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-dupe-else-if",
+      "type": "problem",
+      "description": "Disallow duplicate conditions in if-else-if chains",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-dupe-keys",
+    "name": "Disallow duplicate keys in object literals",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-dupe-keys",
+      "type": "problem",
+      "description": "Disallow duplicate keys in object literals",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-duplicate-case",
+    "name": "Disallow duplicate case labels",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-duplicate-case",
+      "type": "problem",
+      "description": "Disallow duplicate case labels",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-empty-pattern",
+    "name": "Disallow empty destructuring patterns",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-empty-pattern",
+      "type": "problem",
+      "description": "Disallow empty destructuring patterns",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-ex-assign",
+    "name": "Disallow reassigning exceptions in `catch` clauses",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-ex-assign",
+      "type": "problem",
+      "description": "Disallow reassigning exceptions in `catch` clauses",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-fallthrough",
+    "name": "Disallow fallthrough of `case` statements",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-fallthrough",
+      "type": "problem",
+      "description": "Disallow fallthrough of `case` statements",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-func-assign",
+    "name": "Disallow reassigning `function` declarations",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-func-assign",
+      "type": "problem",
+      "description": "Disallow reassigning `function` declarations",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-inner-declarations",
+    "name": "Disallow variable or `function` declarations in nested bl...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-inner-declarations",
+      "type": "problem",
+      "description": "Disallow variable or `function` declarations in nested blocks",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-irregular-whitespace",
+    "name": "Disallow irregular whitespace",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-irregular-whitespace",
+      "type": "problem",
+      "description": "Disallow irregular whitespace",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-loss-of-precision",
+    "name": "Disallow literal numbers that lose precision",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-loss-of-precision",
+      "type": "problem",
+      "description": "Disallow literal numbers that lose precision",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-obj-calls",
+    "name": "Disallow calling global object properties as functions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-obj-calls",
+      "type": "problem",
+      "description": "Disallow calling global object properties as functions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-prototype-builtins",
+    "name": "Disallow calling some `Object.prototype` methods directly...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-prototype-builtins",
+      "type": "problem",
+      "description": "Disallow calling some `Object.prototype` methods directly on objects",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-self-assign",
+    "name": "Disallow assignments where both sides are exactly the same",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-self-assign",
+      "type": "problem",
+      "description": "Disallow assignments where both sides are exactly the same",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-self-compare",
+    "name": "Disallow comparisons where both sides are exactly the same",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-self-compare",
+      "type": "problem",
+      "description": "Disallow comparisons where both sides are exactly the same",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-sparse-arrays",
+    "name": "Disallow sparse arrays",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-sparse-arrays",
+      "type": "problem",
+      "description": "Disallow sparse arrays",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-this-before-super",
+    "name": "Disallow `this`/`super` before calling `super()` in const...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-this-before-super",
+      "type": "problem",
+      "description": "Disallow `this`/`super` before calling `super()` in constructors",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unexpected-multiline",
+    "name": "Disallow confusing multiline expressions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unexpected-multiline",
+      "type": "problem",
+      "description": "Disallow confusing multiline expressions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unreachable",
+    "name": "Disallow unreachable code after `return`, `throw`, `conti...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unreachable",
+      "type": "problem",
+      "description": "Disallow unreachable code after `return`, `throw`, `continue`, and `break` statements",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unsafe-finally",
+    "name": "Disallow control flow statements in `finally` blocks",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unsafe-finally",
+      "type": "problem",
+      "description": "Disallow control flow statements in `finally` blocks",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unsafe-negation",
+    "name": "Disallow negating the left operand of relational operators",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unsafe-negation",
+      "type": "problem",
+      "description": "Disallow negating the left operand of relational operators",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unsafe-optional-chaining",
+    "name": "Disallow use of optional chaining in contexts where the `...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unsafe-optional-chaining",
+      "type": "problem",
+      "description": "Disallow use of optional chaining in contexts where the `undefined` value is not allowed",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-use-isnan",
+    "name": "Require calls to `isNaN()` when checking for `NaN`",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "use-isnan",
+      "type": "problem",
+      "description": "Require calls to `isNaN()` when checking for `NaN`",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-valid-typeof",
+    "name": "Enforce comparing `typeof` expressions against valid strings",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "valid-typeof",
+      "type": "problem",
+      "description": "Enforce comparing `typeof` expressions against valid strings",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-for-direction",
+    "name": "Enforce `for` loop update clause moving the counter in th...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Loops",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "for-direction",
+      "type": "problem",
+      "description": "Enforce `for` loop update clause moving the counter in the right direction",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-import-assign",
+    "name": "Disallow assigning to imported bindings",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Modules",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-import-assign",
+      "type": "problem",
+      "description": "Disallow assigning to imported bindings",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-hooks-error-boundaries",
+    "name": "Validates usage of error boundaries instead of try/catch ...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react-hooks/error-boundaries",
+      "type": "problem",
+      "description": "Validates usage of error boundaries instead of try/catch for errors in child components",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-hooks-purity",
+    "name": "Validates that [components/hooks are pure](https://react....",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react-hooks/purity",
+      "type": "problem",
+      "description": "Validates that [components/hooks are pure](https://react.dev/reference/rules/components-and-hooks-must-be-pure) by checking that they do not call known-impure functions",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-hooks-set-state-in-effect",
+    "name": "Validates against calling setState synchronously in an ef...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react-hooks/set-state-in-effect",
+      "type": "problem",
+      "description": "Validates against calling setState synchronously in an effect, which can lead to re-renders that degrade performance",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-hooks-set-state-in-render",
+    "name": "Validates against setting state during render, which can ...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react-hooks/set-state-in-render",
+      "type": "problem",
+      "description": "Validates against setting state during render, which can trigger additional renders and potential infinite render loops",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-no-comment-textnodes",
+    "name": "Disallow comments from being inserted as text nodes",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-no-comment-textnodes",
+      "type": "suggestion",
+      "description": "Disallow comments from being inserted as text nodes",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-no-target-blank",
+    "name": "Disallow `target=\"_blank\"` attribute without `rel=\"norefe...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-no-target-blank",
+      "type": "suggestion",
+      "description": "Disallow `target=\"_blank\"` attribute without `rel=\"noreferrer\"`",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-display-name",
+    "name": "Disallow missing displayName in a React component definition",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/display-name",
+      "type": "suggestion",
+      "description": "Disallow missing displayName in a React component definition",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-children-prop",
+    "name": "Disallow passing of children as props",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-children-prop",
+      "type": "suggestion",
+      "description": "Disallow passing of children as props",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-danger-with-children",
+    "name": "Disallow when a DOM element is using both children and da...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-danger-with-children",
+      "type": "suggestion",
+      "description": "Disallow when a DOM element is using both children and dangerouslySetInnerHTML",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-deprecated",
+    "name": "Disallow usage of deprecated methods",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-deprecated",
+      "type": "suggestion",
+      "description": "Disallow usage of deprecated methods",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-string-refs",
+    "name": "Disallow using string references",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-string-refs",
+      "type": "suggestion",
+      "description": "Disallow using string references",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-unescaped-entities",
+    "name": "Disallow unescaped HTML entities from appearing in markup",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-unescaped-entities",
+      "type": "suggestion",
+      "description": "Disallow unescaped HTML entities from appearing in markup",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-unknown-property",
+    "name": "Disallow usage of unknown DOM property",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-unknown-property",
+      "type": "suggestion",
+      "description": "Disallow usage of unknown DOM property",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-require-render-return",
+    "name": "Enforce ES5 or ES6 class for returning value in render fu...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/require-render-return",
+      "type": "suggestion",
+      "description": "Enforce ES5 or ES6 class for returning value in render function",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-control-regex",
+    "name": "Disallow control characters in regular expressions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Regex",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-control-regex",
+      "type": "problem",
+      "description": "Disallow control characters in regular expressions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-empty-character-class",
+    "name": "Disallow empty character classes in regular expressions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Regex",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-empty-character-class",
+      "type": "problem",
+      "description": "Disallow empty character classes in regular expressions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-invalid-regexp",
+    "name": "Disallow invalid regular expression strings in `RegExp` c...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Regex",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-invalid-regexp",
+      "type": "problem",
+      "description": "Disallow invalid regular expression strings in `RegExp` constructors",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-misleading-character-class",
+    "name": "Disallow characters which are made with multiple code poi...",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Regex",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-misleading-character-class",
+      "type": "problem",
+      "description": "Disallow characters which are made with multiple code points in character class syntax",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-regex-spaces",
+    "name": "Disallow multiple spaces in regular expressions",
+    "layer": "FUNDAMENTALS",
+    "category": "ESLint Regex",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-regex-spaces",
+      "type": "suggestion",
+      "description": "Disallow multiple spaces in regular expressions",
+      "recommended": true,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-promise-executor-return",
+    "name": "Disallow returning values from Promise executor functions",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Async",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-promise-executor-return",
+      "type": "problem",
+      "description": "Disallow returning values from Promise executor functions",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-arrow-body-style",
+    "name": "Require braces around arrow function bodies",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "arrow-body-style",
+      "type": "suggestion",
+      "description": "Require braces around arrow function bodies",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-block-scoped-var",
+    "name": "Enforce the use of variables within the scope they are de...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "block-scoped-var",
+      "type": "suggestion",
+      "description": "Enforce the use of variables within the scope they are defined",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-default-case",
+    "name": "Require `default` cases in `switch` statements",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "default-case",
+      "type": "suggestion",
+      "description": "Require `default` cases in `switch` statements",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-default-case-last",
+    "name": "Enforce `default` clauses in `switch` statements to be last",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "default-case-last",
+      "type": "suggestion",
+      "description": "Enforce `default` clauses in `switch` statements to be last",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-default-param-last",
+    "name": "Enforce default parameters to be last",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "default-param-last",
+      "type": "suggestion",
+      "description": "Enforce default parameters to be last",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-alert",
+    "name": "Disallow the use of `alert`, `confirm`, and `prompt`",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-alert",
+      "type": "suggestion",
+      "description": "Disallow the use of `alert`, `confirm`, and `prompt`",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-caller",
+    "name": "Disallow the use of `arguments.caller` or `arguments.callee`",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-caller",
+      "type": "suggestion",
+      "description": "Disallow the use of `arguments.caller` or `arguments.callee`",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-empty-function",
+    "name": "Disallow empty functions",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-empty-function",
+      "type": "suggestion",
+      "description": "Disallow empty functions",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-extend-native",
+    "name": "Disallow extending native types",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-extend-native",
+      "type": "suggestion",
+      "description": "Disallow extending native types",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-extra-bind",
+    "name": "Disallow unnecessary calls to `.bind()`",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-extra-bind",
+      "type": "suggestion",
+      "description": "Disallow unnecessary calls to `.bind()`",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-implied-eval",
+    "name": "Disallow the use of `eval()`-like methods",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-implied-eval",
+      "type": "suggestion",
+      "description": "Disallow the use of `eval()`-like methods",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-lone-blocks",
+    "name": "Disallow unnecessary nested blocks",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-lone-blocks",
+      "type": "suggestion",
+      "description": "Disallow unnecessary nested blocks",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-lonely-if",
+    "name": "Disallow `if` statements as the only statement in `else` ...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-lonely-if",
+      "type": "suggestion",
+      "description": "Disallow `if` statements as the only statement in `else` blocks",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-new",
+    "name": "Disallow `new` operators outside of assignments or compar...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-new",
+      "type": "suggestion",
+      "description": "Disallow `new` operators outside of assignments or comparisons",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-new-func",
+    "name": "Disallow `new` operators with the `Function` object",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-new-func",
+      "type": "suggestion",
+      "description": "Disallow `new` operators with the `Function` object",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-new-wrappers",
+    "name": "Disallow `new` operators with the `String`, `Number`, and...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-new-wrappers",
+      "type": "suggestion",
+      "description": "Disallow `new` operators with the `String`, `Number`, and `Boolean` objects",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-param-reassign",
+    "name": "Disallow reassigning function parameters",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-param-reassign",
+      "type": "suggestion",
+      "description": "Disallow reassigning function parameters",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-script-url",
+    "name": "Disallow `javascript:` URLs",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-script-url",
+      "type": "suggestion",
+      "description": "Disallow `javascript:` URLs",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-sequences",
+    "name": "Disallow comma operators",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-sequences",
+      "type": "suggestion",
+      "description": "Disallow comma operators",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-throw-literal",
+    "name": "Disallow throwing literals as exceptions",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-throw-literal",
+      "type": "suggestion",
+      "description": "Disallow throwing literals as exceptions",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unneeded-ternary",
+    "name": "Disallow ternary operators when simpler alternatives exist",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unneeded-ternary",
+      "type": "suggestion",
+      "description": "Disallow ternary operators when simpler alternatives exist",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-unused-expressions",
+    "name": "Disallow unused expressions",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unused-expressions",
+      "type": "suggestion",
+      "description": "Disallow unused expressions",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-call",
+    "name": "Disallow unnecessary calls to `.call()` and `.apply()`",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-call",
+      "type": "suggestion",
+      "description": "Disallow unnecessary calls to `.call()` and `.apply()`",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-computed-key",
+    "name": "Disallow unnecessary computed property keys in objects an...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-computed-key",
+      "type": "suggestion",
+      "description": "Disallow unnecessary computed property keys in objects and classes",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-useless-concat",
+    "name": "Disallow unnecessary concatenation of literals or templat...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-concat",
+      "type": "suggestion",
+      "description": "Disallow unnecessary concatenation of literals or template literals",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-escape",
+    "name": "Disallow unnecessary escape characters",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-escape",
+      "type": "suggestion",
+      "description": "Disallow unnecessary escape characters",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-rename",
+    "name": "Disallow renaming import, export, and destructured assign...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-rename",
+      "type": "suggestion",
+      "description": "Disallow renaming import, export, and destructured assignments to the same name",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-prefer-object-has-own",
+    "name": "Disallow use of `Object.prototype.hasOwnProperty.call()` ...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "prefer-object-has-own",
+      "type": "suggestion",
+      "description": "Disallow use of `Object.prototype.hasOwnProperty.call()` and prefer use of `Object.hasOwn()`",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-prefer-object-spread",
+    "name": "Disallow using `Object.assign` with an object literal as ...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "prefer-object-spread",
+      "type": "suggestion",
+      "description": "Disallow using `Object.assign` with an object literal as the first argument and prefer the use of object spread instead",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-radix",
+    "name": "Enforce the consistent use of the radix argument when usi...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "radix",
+      "type": "suggestion",
+      "description": "Enforce the consistent use of the radix argument when using `parseInt()`",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-constructor",
+    "name": "Disallow unnecessary constructors",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-constructor",
+      "type": "suggestion",
+      "description": "Disallow unnecessary constructors",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-array-callback-return",
+    "name": "Enforce `return` statements in callbacks of array methods",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Control Flow",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "array-callback-return",
+      "type": "problem",
+      "description": "Enforce `return` statements in callbacks of array methods",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-consistent-return",
+    "name": "Require `return` statements to either always or never spe...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Control Flow",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "consistent-return",
+      "type": "suggestion",
+      "description": "Require `return` statements to either always or never specify values",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-else-return",
+    "name": "Disallow `else` blocks after `return` statements in `if` ...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Control Flow",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-else-return",
+      "type": "suggestion",
+      "description": "Disallow `else` blocks after `return` statements in `if` statements",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-return-assign",
+    "name": "Disallow assignment operators in `return` statements",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Control Flow",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-return-assign",
+      "type": "suggestion",
+      "description": "Disallow assignment operators in `return` statements",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-return",
+    "name": "Disallow redundant return statements",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Control Flow",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-return",
+      "type": "suggestion",
+      "description": "Disallow redundant return statements",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-no-template-curly-in-string",
+    "name": "Disallow template literal placeholder syntax in regular s...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-template-curly-in-string",
+      "type": "problem",
+      "description": "Disallow template literal placeholder syntax in regular strings",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-assignment",
+    "name": "Disallow variable assignments when the value is not used",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-assignment",
+      "type": "problem",
+      "description": "Disallow variable assignments when the value is not used",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-loop-func",
+    "name": "Disallow function declarations that contain unsafe refere...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Loops",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-loop-func",
+      "type": "suggestion",
+      "description": "Disallow function declarations that contain unsafe references inside loop statements",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unmodified-loop-condition",
+    "name": "Disallow unmodified loop conditions",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Loops",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unmodified-loop-condition",
+      "type": "problem",
+      "description": "Disallow unmodified loop conditions",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-unreachable-loop",
+    "name": "Disallow loops with a body that allows only one iteration",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Loops",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-unreachable-loop",
+      "type": "problem",
+      "description": "Disallow loops with a body that allows only one iteration",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-duplicate-imports",
+    "name": "Disallow duplicate module imports",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Modules",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-duplicate-imports",
+      "type": "problem",
+      "description": "Disallow duplicate module imports",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-hook-use-state",
+    "name": "Ensure destructuring and symmetric naming of useState hoo...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/hook-use-state",
+      "type": "suggestion",
+      "description": "Ensure destructuring and symmetric naming of useState hook value and setter variables",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-hooks-no-deriving-state-in-effects",
+    "name": "Validates against deriving values from state in an effect",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react-hooks/no-deriving-state-in-effects",
+      "type": "problem",
+      "description": "Validates against deriving values from state in an effect",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-no-access-state-in-setstate",
+    "name": "Disallow when this.state is accessed within setState",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-access-state-in-setstate",
+      "type": "suggestion",
+      "description": "Disallow when this.state is accessed within setState",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-unused-state",
+    "name": "Disallow definitions of unused state",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-unused-state",
+      "type": "suggestion",
+      "description": "Disallow definitions of unused state",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-boolean-value",
+    "name": "Enforce boolean attributes notation in JSX",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-boolean-value",
+      "type": "suggestion",
+      "description": "Enforce boolean attributes notation in JSX",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-curly-brace-presence",
+    "name": "Disallow unnecessary JSX expressions when literals alone ...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-curly-brace-presence",
+      "type": "suggestion",
+      "description": "Disallow unnecessary JSX expressions when literals alone are sufficient or enforce JSX expressions on literals in JSX children or attributes",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-fragments",
+    "name": "Enforce shorthand or standard form for React fragments",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-fragments",
+      "type": "suggestion",
+      "description": "Enforce shorthand or standard form for React fragments",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-no-bind",
+    "name": "Disallow `.bind()` or arrow functions in JSX props",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-no-bind",
+      "type": "suggestion",
+      "description": "Disallow `.bind()` or arrow functions in JSX props",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-no-leaked-render",
+    "name": "Disallow problematic leaked values from being rendered",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-no-leaked-render",
+      "type": "suggestion",
+      "description": "Disallow problematic leaked values from being rendered",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-no-script-url",
+    "name": "Disallow usage of `javascript:` URLs",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-no-script-url",
+      "type": "suggestion",
+      "description": "Disallow usage of `javascript:` URLs",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-no-useless-fragment",
+    "name": "Disallow unnecessary fragments",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-no-useless-fragment",
+      "type": "suggestion",
+      "description": "Disallow unnecessary fragments",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-pascal-case",
+    "name": "Enforce PascalCase for user-defined JSX components",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-pascal-case",
+      "type": "suggestion",
+      "description": "Enforce PascalCase for user-defined JSX components",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-props-no-spread-multi",
+    "name": "Disallow JSX prop spreading the same identifier multiple ...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-props-no-spread-multi",
+      "type": "suggestion",
+      "description": "Disallow JSX prop spreading the same identifier multiple times",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-button-has-type",
+    "name": "Disallow usage of `button` elements without an explicit `...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/button-has-type",
+      "type": "suggestion",
+      "description": "Disallow usage of `button` elements without an explicit `type` attribute",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-forward-ref-uses-ref",
+    "name": "Require all forwardRef components include a ref parameter",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/forward-ref-uses-ref",
+      "type": "suggestion",
+      "description": "Require all forwardRef components include a ref parameter",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-function-component-definition",
+    "name": "Enforce a specific function type for function components",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/function-component-definition",
+      "type": "suggestion",
+      "description": "Enforce a specific function type for function components",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-iframe-missing-sandbox",
+    "name": "Enforce sandbox attribute on iframe elements",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/iframe-missing-sandbox",
+      "type": "suggestion",
+      "description": "Enforce sandbox attribute on iframe elements",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-danger",
+    "name": "Disallow usage of dangerous JSX properties",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-danger",
+      "type": "suggestion",
+      "description": "Disallow usage of dangerous JSX properties",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-invalid-html-attribute",
+    "name": "Disallow usage of invalid attributes",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-invalid-html-attribute",
+      "type": "suggestion",
+      "description": "Disallow usage of invalid attributes",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-namespace",
+    "name": "Enforce that namespaces are not used in React elements",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-namespace",
+      "type": "suggestion",
+      "description": "Enforce that namespaces are not used in React elements",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-this-in-sfc",
+    "name": "Disallow `this` from being used in stateless functional c...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-this-in-sfc",
+      "type": "suggestion",
+      "description": "Disallow `this` from being used in stateless functional components",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-unsafe",
+    "name": "Disallow usage of unsafe lifecycle methods",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-unsafe",
+      "type": "suggestion",
+      "description": "Disallow usage of unsafe lifecycle methods",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-unused-prop-types",
+    "name": "Disallow definitions of unused propTypes",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-unused-prop-types",
+      "type": "suggestion",
+      "description": "Disallow definitions of unused propTypes",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-self-closing-comp",
+    "name": "Disallow extra closing tags for components without children",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/self-closing-comp",
+      "type": "suggestion",
+      "description": "Disallow extra closing tags for components without children",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-react-style-prop-object",
+    "name": "Enforce style prop value is an object",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/style-prop-object",
+      "type": "suggestion",
+      "description": "Enforce style prop value is an object",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-void-dom-elements-no-children",
+    "name": "Disallow void DOM elements (e.g. `<img />`, `<br />`) fro...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/void-dom-elements-no-children",
+      "type": "suggestion",
+      "description": "Disallow void DOM elements (e.g. `<img />`, `<br />`) from receiving children",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-prefer-regex-literals",
+    "name": "Disallow use of the `RegExp` constructor in favor of regu...",
+    "layer": "INTERMEDIATE",
+    "category": "ESLint Regex",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "prefer-regex-literals",
+      "type": "suggestion",
+      "description": "Disallow use of the `RegExp` constructor in favor of regular expression literals",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-await-in-loop",
+    "name": "Disallow `await` inside of loops",
+    "layer": "PATTERNS",
+    "category": "ESLint Async",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-await-in-loop",
+      "type": "problem",
+      "description": "Disallow `await` inside of loops",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-prefer-promise-reject-errors",
+    "name": "Require using Error objects as Promise rejection reasons",
+    "layer": "PATTERNS",
+    "category": "ESLint Async",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "prefer-promise-reject-errors",
+      "type": "suggestion",
+      "description": "Require using Error objects as Promise rejection reasons",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-require-await",
+    "name": "Disallow async functions which have no `await` expression",
+    "layer": "PATTERNS",
+    "category": "ESLint Async",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "require-await",
+      "type": "suggestion",
+      "description": "Disallow async functions which have no `await` expression",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-complexity",
+    "name": "Enforce a maximum cyclomatic complexity allowed in a program",
+    "layer": "PATTERNS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "complexity",
+      "type": "suggestion",
+      "description": "Enforce a maximum cyclomatic complexity allowed in a program",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-logical-assignment-operators",
+    "name": "Require or disallow logical assignment operator shorthand",
+    "layer": "PATTERNS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "logical-assignment-operators",
+      "type": "suggestion",
+      "description": "Require or disallow logical assignment operator shorthand",
+      "recommended": false,
+      "fixable": true
+    }
+  },
+  {
+    "slug": "eslint-prefer-named-capture-group",
+    "name": "Enforce using named capture group in regular expression",
+    "layer": "PATTERNS",
+    "category": "ESLint Best Practices",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "prefer-named-capture-group",
+      "type": "suggestion",
+      "description": "Enforce using named capture group in regular expression",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-accessor-pairs",
+    "name": "Enforce getter and setter pairs in objects and classes",
+    "layer": "PATTERNS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "accessor-pairs",
+      "type": "suggestion",
+      "description": "Enforce getter and setter pairs in objects and classes",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-class-methods-use-this",
+    "name": "Enforce that class methods utilize `this`",
+    "layer": "PATTERNS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "class-methods-use-this",
+      "type": "suggestion",
+      "description": "Enforce that class methods utilize `this`",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-grouped-accessor-pairs",
+    "name": "Require grouped accessor pairs in object literals and cla...",
+    "layer": "PATTERNS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "grouped-accessor-pairs",
+      "type": "suggestion",
+      "description": "Require grouped accessor pairs in object literals and classes",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-constructor-return",
+    "name": "Disallow returning value from constructor",
+    "layer": "PATTERNS",
+    "category": "ESLint Classes",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-constructor-return",
+      "type": "problem",
+      "description": "Disallow returning value from constructor",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-no-useless-backreference",
+    "name": "Disallow useless backreferences in regular expressions",
+    "layer": "PATTERNS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "critical",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "no-useless-backreference",
+      "type": "problem",
+      "description": "Disallow useless backreferences in regular expressions",
+      "recommended": true,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-require-atomic-updates",
+    "name": "Disallow assignments that can lead to race conditions due...",
+    "layer": "PATTERNS",
+    "category": "ESLint Error Prevention",
+    "frameworkAffinity": "shared",
+    "criticality": "high",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "require-atomic-updates",
+      "type": "problem",
+      "description": "Disallow assignments that can lead to race conditions due to usage of `await` or `yield`",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-prefer-stateless-function",
+    "name": "Enforce stateless components to be written as a pure func...",
+    "layer": "PATTERNS",
+    "category": "ESLint React Hooks & State",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/prefer-stateless-function",
+      "type": "suggestion",
+      "description": "Enforce stateless components to be written as a pure function",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-jsx-no-constructed-context-values",
+    "name": "Disallows JSX context provider values from taking values ...",
+    "layer": "PATTERNS",
+    "category": "ESLint React JSX",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/jsx-no-constructed-context-values",
+      "type": "suggestion",
+      "description": "Disallows JSX context provider values from taking values that will cause needless rerenders",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-object-type-as-default-prop",
+    "name": "Disallow usage of referential-type variables as default p...",
+    "layer": "PATTERNS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-object-type-as-default-prop",
+      "type": "suggestion",
+      "description": "Disallow usage of referential-type variables as default param in functional component",
+      "recommended": false,
+      "fixable": false
+    }
+  },
+  {
+    "slug": "eslint-react-no-unstable-nested-components",
+    "name": "Disallow creating unstable components inside components",
+    "layer": "PATTERNS",
+    "category": "ESLint React Patterns",
+    "frameworkAffinity": "react-specific",
+    "criticality": "medium",
+    "prerequisites": [],
+    "detectionRules": {
+      "eslintRule": "react/no-unstable-nested-components",
+      "type": "suggestion",
+      "description": "Disallow creating unstable components inside components",
+      "recommended": false,
+      "fixable": false
+    }
+  }
+]

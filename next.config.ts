@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: [
+    "eslint",
+    "eslint-plugin-react",
+    "eslint-plugin-react-hooks",
+    "typescript-eslint",
+    "globals",
+  ],
 };
 
 export default nextConfig;

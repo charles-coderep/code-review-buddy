@@ -96,7 +96,7 @@ Grok API (grok-4-latest) connected and returning real coaching feedback.
 - [x] Phase D: Code Coaching — review-results component, review page (Monaco editor + submit)
 - [x] Phase E: Skill Matrix — skill-matrix-view (framework toggle), skills page
 
-## IN PROGRESS: Architecture Refactor — AI-Driven Evaluation
+## COMPLETE: Architecture Refactor — AI-Driven Evaluation
 
 ### Problem
 
@@ -158,11 +158,197 @@ Full details in CLAUDE.md under "## Analysis Architecture"
 
 ### Key Design Details for Next Session
 
-- **Score parsing regex:** `/```TOPIC_SCORES\n([\s\S]*?)```/` — extracts JSON array from AI response
-- **Score values:** 1.0 perfect, 0.8 correct not idiomatic, 0.6 minor issue, 0.3 significant mistake, 0.0 broken
+- **Score parsing regex:** Handles both fenced (` ```TOPIC_SCORES `) and unfenced (`TOPIC_SCORES [...]`) formats
+- **Score values:** 1.0 perfect/idiomatic, 0.8 correct but not idiomatic, 0.6 minor issue, 0.3 significant mistake, 0.0 fundamental misunderstanding or crash
+- **Scoring strictness:** System prompt includes critical rules — scores must match coaching criticism, runtime errors = 0.0, type confusion = 0.3, "demonstrates awareness" ≠ correct usage, when in doubt score lower
 - **Fallback strategy:** When `grokResponse.topicScores` is empty (parse fail or mock), use `scoreTopicPerformance()` and set `scoringSource: "ast-fallback"`
 - **engineDetails new fields:** `aiEvaluations: Array<{ slug, score, reason }>`, `scoringSource: "ai" | "ast-fallback"`
 - **Mock feedback:** Needs to generate scores from request's `issues`/`positiveFindings` arrays as fallback (score 0.3 for issues, 0.8 for positives)
+
+## COMPLETE: AST Detector Expansion — Total Node Coverage
+
+### Goal
+
+Expand from 98 to ~180 topic markers so virtually every line of JS/React code maps to trackable skills.
+
+### Implementation Steps
+
+- [x] **Type inference utility** — `src/lib/analysis/typeInference.ts`
+  - Tracks variable types through AST (object, array, string, number, map, set, date, promise, etc.)
+  - Exports `buildTypeMap()`, `inferTypeFromNode()`, `isVariableType()`
+
+- [x] **Array mutation detector** — `src/lib/analysis/detectors/arrayMutationMethods.ts`
+  - push/pop, shift/unshift, splice, indexOf/includes, sort, slice/concat, flat/flatMap, Array.from/isArray, length, bracket notation
+
+- [x] **String methods detector** — `src/lib/analysis/detectors/stringMethods.ts`
+  - template literals, split/join, search methods, transform, slice/substring, pad/repeat
+
+- [x] **Object methods detector** — `src/lib/analysis/detectors/objectMethods.ts`
+  - keys/values/entries, assign/freeze, fromEntries, computed properties, property access, existence checks
+
+- [x] **Number/math detector** — `src/lib/analysis/detectors/numberMath.ts`
+  - parsing, checking, formatting, Math methods
+
+- [x] **JSON detector** — `src/lib/analysis/detectors/jsonOperations.ts`
+  - parse (with/without error handling), stringify
+
+- [x] **Modern operators detector** — `src/lib/analysis/detectors/modernOperators.ts`
+  - optional chaining, nullish coalescing, logical assignment, typeof, instanceof, equality, ternary
+
+- [x] **Control flow detector** — `src/lib/analysis/detectors/controlFlow.ts`
+  - switch/case, for...in, guard clauses, short-circuit evaluation
+
+- [x] **Class syntax detector** — `src/lib/analysis/detectors/classSyntax.ts`
+  - declaration, methods, inheritance, getters/setters, private fields, properties
+
+- [x] **Module patterns detector** — `src/lib/analysis/detectors/modulePatterns.ts`
+  - import/export (default, named, namespace, dynamic)
+
+- [x] **Map/Set detector** — `src/lib/analysis/detectors/mapSetCollections.ts`
+  - Map, Set, iteration, WeakMap/WeakRef
+
+- [x] **Timers detector** — `src/lib/analysis/detectors/timersScheduling.ts`
+  - setTimeout, setInterval, rAF, debounce/throttle
+
+- [x] **Date handling detector** — `src/lib/analysis/detectors/dateHandling.ts`
+  - creation, formatting, methods
+
+- [x] **Regex detector** — `src/lib/analysis/detectors/regexPatterns.ts`
+  - literals, methods, flags, groups
+
+- [x] **DOM operations detector** — `src/lib/analysis/detectors/domOperations.ts`
+  - query selectors, manipulation, events, classList, dataset
+
+- [x] **Browser APIs detector** — `src/lib/analysis/detectors/browserApis.ts`
+  - localStorage, URL, FormData, history
+
+- [x] **Observer APIs detector** — `src/lib/analysis/detectors/observerApis.ts`
+  - Intersection, Mutation, Resize observers
+
+- [x] **Anti-patterns detector** — `src/lib/analysis/detectors/antiPatterns.ts`
+  - no-var, strict equality, eval, innerHTML, magic numbers, console.log, empty catch, type coercion
+
+- [x] **Integration** — All 17 new detectors registered in `src/lib/analysis/index.ts`
+- [x] **Seed file** — 82 new topic slugs added to `prisma/seed.ts` (180 total)
+- [x] **Build verification** — `npx next build` compiles clean
+- [x] **Seed execution** — `npx tsx prisma/seed.ts` — 182 topics seeded successfully
+
+## COMPLETE: ESLint Integration — Programmatic Linting Layer
+
+### Goal
+
+Add ESLint as a second detection layer alongside Babel AST. ESLint catches rule violations (unreachable code, missing returns, complexity, React best practices) that structural AST pattern matching cannot. ~120 rules, ~152 new topics.
+
+### Implementation Steps
+
+- [x] **Rule catalog generation** — `scripts/generate-eslint-topics.ts`
+  - Extracts metadata from ESLint core (`builtinRules`), `eslint-plugin-react`, `eslint-plugin-react-hooks`
+  - Filters deprecated, formatting, snippet-noise, niche, and React compiler internal rules
+  - Maps 22 overlapping rules to existing Babel slugs via `BABEL_OVERLAP_MAP`
+  - Classifies remaining into FUNDAMENTALS/INTERMEDIATE/PATTERNS layers
+  - Outputs `scripts/eslint-topics.json` (152 topics) and `scripts/eslint-overlap-map.json`
+
+- [x] **Seed file update** — `prisma/seed.ts`
+  - Imports `eslint-topics.json`, merges with Babel topics (deduplicates by slug)
+  - Total: ~332 topics (180 Babel + 152 ESLint)
+
+- [x] **ESLint detection module** — `src/lib/analysis/eslintDetector.ts`
+  - Uses ESLint `Linter` class (synchronous, in-memory, flat config)
+  - Four configs: BASE_JS, BASE_TS, REACT_JS, REACT_TS
+  - `typescript-eslint` parser for TS/TSX support
+  - `globals` package for environment globals
+  - `BABEL_OVERLAP_MAP` for 22 overlapping rules
+  - `ruleIdToSlug()`: overlap map first, then `eslint-*` prefix
+  - All violations: `isPositive: false, isNegative: true`
+  - `isTrivial: true` for auto-fixable rules
+  - Graceful degradation: empty array on failure
+
+- [x] **Pipeline integration** — `src/lib/analysis/index.ts`
+  - Added `source?: "babel" | "eslint"` to `Detection` interface
+  - Babel detections tagged `source: "babel"` after running
+  - ESLint called after Babel, results merged into `allDetections`
+  - Updated `serializeAnalysis()` to include `source` field
+
+- [x] **Server action update** — `src/app/actions/review.ts`
+  - `engineDetails.detections` includes `source` field
+  - `detectedTopics` sent to Grok includes `source` and `details`
+
+- [x] **Grok prompt update** — `src/lib/grok.ts`
+  - `GrokRequest.detectedTopics` type includes optional `source` and `details`
+  - `buildUserPrompt()` splits topics into "Detected Topics (AST)" and "ESLint Violations" sections
+
+- [x] **Turbopack fix** — `next.config.ts`
+  - Added `serverExternalPackages` for eslint, eslint-plugin-react, eslint-plugin-react-hooks, typescript-eslint, globals
+  - Required because eslint-plugin-react-hooks → @babel/core can't be bundled by Turbopack
+
+- [x] **UI updates** — `src/components/review/review-results.tsx`, `src/app/(dashboard)/review/page.tsx`
+  - Split detection display into Babel vs ESLint vs Data Flow sections
+  - Add ESLint + Data Flow pipeline stages in loading animation
+  - Update detection count in pipeline stages
+
+- [x] **Build verification** — `npx next build` compiles clean
+- [x] **Seed execution** — `npx tsx prisma/seed.ts` — 344 topics seeded
+- [x] **End-to-end test** — Submitted code with known violations, verified in Engine Details
+
+## COMPLETE: Data Flow Detection — Semantic Analysis Layer
+
+### Goal
+
+Add 10 semantic data flow detectors that catch issues pure syntax matching (Babel) and lint rules (ESLint) cannot — like shared object reference mutations, missing array callback returns, React state mutations, var-before-init, array-as-object, and deep nesting.
+
+### Implementation Steps
+
+- [x] **Alias tracking** — `src/lib/analysis/typeInference.ts`
+  - Extended with `AliasInfo`, `AliasMap` interfaces and `buildAliasMap()` function
+  - Two-pass analysis: Pass 1 tracks object/array declarations and property assignments to find aliases; Pass 2 detects mutations via property assignment on aliased objects
+  - Foundation for `object-reference-sharing` and `object-spread-missing` detectors
+
+- [x] **Data flow detector module** — `src/lib/analysis/dataFlowDetector.ts`
+  - 12 detectors: object-reference-sharing, nested-ternary, deep-nesting, long-parameter-list, state-mutation-react, missing-cleanup-effect, object-spread-missing, array-method-no-return, var-used-before-init, array-as-object, loop-bounds-off-by-one, string-arithmetic-coercion
+  - Main entry: `analyzeDataFlow(ast, isReact)` → `Detection[]` with `source: "dataflow"`
+  - JS detectors always run; React detectors (state-mutation-react, missing-cleanup-effect) only when React detected
+  - `analyzeReturnPaths()` helper for smart return path analysis in array callbacks
+  - `var-used-before-init`: scans top-level program body for Identifier references to var-declared variables that appear before the declaration line (skips function bodies since they execute when called)
+  - `array-as-object`: detects when `[]`-typed variable gets string-keyed assignments — catches StringLiteral keys, string-typed variable keys, and variable keys with ObjectExpression values
+
+- [x] **Topic definitions** — `scripts/dataflow-topics.json`
+  - 10 topics with slug, name, layer, category, criticality, prerequisites, relatedTopics
+
+- [x] **Seed file update** — `prisma/seed.ts`
+  - Imports `dataflow-topics.json`, merges with Babel + ESLint topics
+  - Total: 345 topics (181 Babel + 152 ESLint + 12 Data Flow)
+
+- [x] **Pipeline integration** — `src/lib/analysis/index.ts`
+  - Added `"dataflow"` to Detection source type
+  - Data flow detector called after ESLint, results merged
+
+- [x] **Grok prompt update** — `src/lib/grok.ts`
+  - `buildUserPrompt()` splits into "Detected Topics (AST)", "ESLint Violations", and "Data Flow Issues"
+
+- [x] **UI updates** — `src/components/review/review-results.tsx`, `src/app/(dashboard)/review/page.tsx`
+  - Added purple/violet Data Flow section in Engine Details
+  - Added "Analyzing data flow" pipeline stage with GitBranch icon
+  - Three-way detection count header
+
+- [x] **Testing** — All 10 detectors verified working via `scripts/test-dataflow.ts`
+- [x] **Build** — `npx next build` compiles clean
+- [x] **Seed** — 344 topics seeded successfully
+
+## COMPLETE: AI Scoring Strictness — Prompt Improvement
+
+### Problem
+
+AI coaching text correctly identified code issues but TOPIC_SCORES were too generous. Example: `var-hoisting` scored 0.8 ("demonstrates hoisting correctly") for code that would crash at runtime when calling `printSummary()` before assignment. `bracket-notation` scored 1.0 for using string keys on an array (type confusion bug).
+
+### Solution
+
+Expanded the TOPIC_SCORES instruction in `buildSystemPrompt()` (`src/lib/grok.ts`) with:
+- Detailed score guide with concrete examples at each level (1.0, 0.8, 0.6, 0.3, 0.0)
+- 6 critical scoring rules enforcing strict correctness-based scoring
+- Key rules: scores must match coaching criticism, runtime errors = 0.0, type confusion = 0.3, "demonstrates awareness" ≠ correct usage, when in doubt score lower
+
+### Files Changed
+- [x] `src/lib/grok.ts` — Expanded `scoringInstruction` in `buildSystemPrompt()`
 
 ## Other TODO
 
@@ -171,7 +357,7 @@ Full details in CLAUDE.md under "## Analysis Architecture"
 
 ## Key Info for Future Sessions
 
-- **Database:** Supabase PostgreSQL — schema synced, 98 topics seeded (11 tables, all needed)
+- **Database:** Supabase PostgreSQL — schema synced, 345 topics defined in seed.ts (181 Babel + 152 ESLint + 12 Data Flow). Run `npx prisma db seed` to push new topics.
 - **Prisma 7:** Uses `prisma.config.ts` for datasource URL (not in schema.prisma). Seed script uses PrismaPg adapter.
 - **xAI:** API key in .env as XAI_API_KEY, model is grok-4-latest, requires credits on https://console.x.ai
 - **UI style:** Dark theme, shadcn/ui (new-york style) + Monaco Editor, lucide-react icons
@@ -179,5 +365,7 @@ Full details in CLAUDE.md under "## Analysis Architecture"
 - **Pattern:** Server components call server actions, pass data to client components as props
 - **Auth:** NextAuth v5 beta, Credentials provider, JWT strategy
 - **Code detection:** No user language selection — engine auto-detects JS vs React via AST. Topics graded by affinity (js-pure, react-specific, shared).
-- **Engine debug:** Collapsible "Engine Details" panel in results shows raw AST detections and performance scores
-- **Analysis architecture:** AST handles detection (which topics?), AI handles evaluation (used correctly?). See CLAUDE.md "Analysis Architecture" section.
+- **Engine debug:** Collapsible "Engine Details" panel in results shows raw AST detections, ESLint detections, Data Flow detections, and performance scores
+- **Analysis architecture:** Four-layer detection: Babel AST (topic presence) + ESLint (rule violations) + Data Flow (semantic patterns) + AI (correctness scoring). See CLAUDE.md "Analysis Architecture" section.
+- **Detectors:** 30 Babel detector files in `src/lib/analysis/detectors/` + ESLint detector at `src/lib/analysis/eslintDetector.ts` + Data Flow detector at `src/lib/analysis/dataFlowDetector.ts`. Type inference + alias tracking at `src/lib/analysis/typeInference.ts`. All registered in `src/lib/analysis/index.ts`.
+- **ESLint config:** Uses `Linter` class with flat config (ESLint 9). Requires `serverExternalPackages` in `next.config.ts` for Turbopack. 22 ESLint rules overlap with Babel topics (mapped, not duplicated).

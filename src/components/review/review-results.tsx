@@ -17,6 +17,8 @@ import {
   Check,
   X,
   Star,
+  Shield,
+  GitBranch,
 } from "lucide-react";
 
 interface ReviewResultData {
@@ -54,6 +56,7 @@ interface ReviewResultData {
       isIdiomatic: boolean;
       details?: string;
       location?: { line: number; column: number };
+      source?: "babel" | "eslint" | "dataflow";
     }>;
     performanceScores: Array<{
       topicSlug: string;
@@ -118,7 +121,7 @@ function EngineDetails({
       {open && (
         <CardContent className="pt-4 space-y-4">
           {/* Detection context */}
-          <div className="flex gap-4 text-xs text-muted-foreground">
+          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span>
               Language:{" "}
               <span className="font-medium text-foreground">
@@ -138,6 +141,28 @@ function EngineDetails({
               </span>
             </span>
             <span>
+              Detections:{" "}
+              <span className="font-medium text-foreground">
+                {details.detections.filter((d) => d.source !== "eslint" && d.source !== "dataflow").length} AST
+              </span>
+              {details.detections.some((d) => d.source === "eslint") && (
+                <>
+                  {" + "}
+                  <span className="font-medium text-amber-400">
+                    {details.detections.filter((d) => d.source === "eslint").length} ESLint
+                  </span>
+                </>
+              )}
+              {details.detections.some((d) => d.source === "dataflow") && (
+                <>
+                  {" + "}
+                  <span className="font-medium text-violet-400">
+                    {details.detections.filter((d) => d.source === "dataflow").length} Data Flow
+                  </span>
+                </>
+              )}
+            </span>
+            <span>
               Scoring:{" "}
               <Badge
                 variant="outline"
@@ -152,63 +177,154 @@ function EngineDetails({
             </span>
           </div>
 
-          {/* Raw detections */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">
-              AST Detections — topic presence ({details.detections.length})
-            </p>
-            <div className="space-y-1">
-              {details.detections.map((d, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between text-xs bg-muted/30 rounded px-3 py-1.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <code className="text-primary">{d.topicSlug}</code>
-                    {d.location && (
-                      <span className="text-muted-foreground">
-                        L{d.location.line}:{d.location.column}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {d.isPositive && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] px-1.5 py-0 bg-green-600/10 text-green-400 border-green-600/30"
+          {/* AST Detections */}
+          {(() => {
+            const babelDetections = details.detections.filter((d) => d.source !== "eslint" && d.source !== "dataflow");
+            const eslintDetections = details.detections.filter((d) => d.source === "eslint");
+            const dataflowDetections = details.detections.filter((d) => d.source === "dataflow");
+            return (
+              <>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    AST Detections — topic presence ({babelDetections.length})
+                  </p>
+                  <div className="space-y-1">
+                    {babelDetections.map((d, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between text-xs bg-muted/30 rounded px-3 py-1.5"
                       >
-                        <Check className="h-2.5 w-2.5 mr-0.5" />
-                        positive
-                      </Badge>
-                    )}
-                    {d.isNegative && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] px-1.5 py-0 bg-red-600/10 text-red-400 border-red-600/30"
-                      >
-                        <X className="h-2.5 w-2.5 mr-0.5" />
-                        negative
-                      </Badge>
-                    )}
-                    {d.isIdiomatic && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] px-1.5 py-0 bg-yellow-600/10 text-yellow-400 border-yellow-600/30"
-                      >
-                        <Star className="h-2.5 w-2.5 mr-0.5" />
-                        idiomatic
-                      </Badge>
-                    )}
-                    {d.details && (
-                      <span className="text-muted-foreground max-w-[200px] truncate">
-                        {d.details}
-                      </span>
-                    )}
+                        <div className="flex items-center gap-2">
+                          <code className="text-primary">{d.topicSlug}</code>
+                          {d.location && (
+                            <span className="text-muted-foreground">
+                              L{d.location.line}:{d.location.column}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {d.isPositive && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 bg-green-600/10 text-green-400 border-green-600/30"
+                            >
+                              <Check className="h-2.5 w-2.5 mr-0.5" />
+                              positive
+                            </Badge>
+                          )}
+                          {d.isNegative && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 bg-red-600/10 text-red-400 border-red-600/30"
+                            >
+                              <X className="h-2.5 w-2.5 mr-0.5" />
+                              negative
+                            </Badge>
+                          )}
+                          {d.isIdiomatic && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 bg-yellow-600/10 text-yellow-400 border-yellow-600/30"
+                            >
+                              <Star className="h-2.5 w-2.5 mr-0.5" />
+                              idiomatic
+                            </Badge>
+                          )}
+                          {d.details && (
+                            <span className="text-muted-foreground max-w-[200px] truncate">
+                              {d.details}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* ESLint Detections */}
+                {eslintDetections.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Shield className="h-3 w-3 text-amber-400" />
+                      ESLint Detections — rule violations ({eslintDetections.length})
+                    </p>
+                    <div className="space-y-1">
+                      {eslintDetections.map((d, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between text-xs bg-amber-950/20 border border-amber-900/20 rounded px-3 py-1.5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <code className="text-amber-400">{d.topicSlug}</code>
+                            {d.location && (
+                              <span className="text-muted-foreground">
+                                L{d.location.line}:{d.location.column}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 bg-red-600/10 text-red-400 border-red-600/30"
+                            >
+                              <X className="h-2.5 w-2.5 mr-0.5" />
+                              violation
+                            </Badge>
+                            {d.details && (
+                              <span className="text-muted-foreground max-w-[250px] truncate">
+                                {d.details}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Data Flow Detections */}
+                {dataflowDetections.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <GitBranch className="h-3 w-3 text-violet-400" />
+                      Data Flow Detections — semantic issues ({dataflowDetections.length})
+                    </p>
+                    <div className="space-y-1">
+                      {dataflowDetections.map((d, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between text-xs bg-violet-950/20 border border-violet-900/20 rounded px-3 py-1.5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <code className="text-violet-400">{d.topicSlug}</code>
+                            {d.location && (
+                              <span className="text-muted-foreground">
+                                L{d.location.line}:{d.location.column}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 bg-violet-600/10 text-violet-400 border-violet-600/30"
+                            >
+                              <GitBranch className="h-2.5 w-2.5 mr-0.5" />
+                              semantic
+                            </Badge>
+                            {d.details && (
+                              <span className="text-muted-foreground max-w-[250px] truncate">
+                                {d.details}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* AI evaluations */}
           {details.aiEvaluations.length > 0 && (

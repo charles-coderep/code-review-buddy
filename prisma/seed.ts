@@ -2,12 +2,45 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import "dotenv/config";
+import * as fs from "fs";
+import * as path from "path";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// Topic definitions from CLAUDE.md - 98 total topics
+// Load ESLint topics from generated catalog
+const eslintTopicsPath = path.join(__dirname, "..", "scripts", "eslint-topics.json");
+const eslintTopicsRaw: Array<{
+  slug: string;
+  name: string;
+  layer: string;
+  category: string;
+  frameworkAffinity: string;
+  criticality: string;
+  prerequisites: string[];
+  detectionRules: object;
+}> = fs.existsSync(eslintTopicsPath)
+  ? JSON.parse(fs.readFileSync(eslintTopicsPath, "utf-8"))
+  : [];
+
+// Load data flow topics
+const dataflowTopicsPath = path.join(__dirname, "..", "scripts", "dataflow-topics.json");
+const dataflowTopicsRaw: Array<{
+  slug: string;
+  name: string;
+  description: string;
+  layer: string;
+  category: string;
+  framework: string;
+  criticality: string;
+  prerequisites: string[];
+  relatedTopics: string[];
+}> = fs.existsSync(dataflowTopicsPath)
+  ? JSON.parse(fs.readFileSync(dataflowTopicsPath, "utf-8"))
+  : [];
+
+// Topic definitions - 180 Babel AST topics + ESLint topics
 const topics = [
   // ============================================
   // FUNDAMENTALS LAYER (42 markers)
@@ -1347,17 +1380,958 @@ const topics = [
       check: "Detects error recovery mechanisms",
     },
   },
+
+  // ============================================
+  // EXPANDED TOPICS — Array Mutation (shared) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "array-push-pop",
+    name: "Array Push/Pop",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .push() and .pop() usage" },
+  },
+  {
+    slug: "array-shift-unshift",
+    name: "Array Shift/Unshift",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["array-push-pop"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .shift() and .unshift() usage" },
+  },
+  {
+    slug: "array-splice",
+    name: "Array Splice",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["array-push-pop"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .splice() usage" },
+  },
+  {
+    slug: "array-indexOf-includes",
+    name: "Array indexOf/includes",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .indexOf() and .includes() usage" },
+  },
+  {
+    slug: "array-sort",
+    name: "Array Sort",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .sort() with/without comparator" },
+  },
+  {
+    slug: "array-slice-concat",
+    name: "Array Slice/Concat",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .slice() and .concat() usage" },
+  },
+  {
+    slug: "array-flat-flatMap",
+    name: "Array Flat/FlatMap",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["array-map"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .flat() and .flatMap() usage" },
+  },
+  {
+    slug: "array-from-isArray",
+    name: "Array.from/isArray",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects Array.from() and Array.isArray()" },
+  },
+  {
+    slug: "array-length",
+    name: "Array Length",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: [],
+    detectionRules: { patterns: ["MemberExpression"], check: "Detects .length property access" },
+  },
+  {
+    slug: "bracket-notation",
+    name: "Bracket Notation",
+    layer: "FUNDAMENTALS",
+    category: "Array Mutation",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: [],
+    detectionRules: { patterns: ["MemberExpression"], check: "Detects bracket notation access" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — String Methods (shared) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "template-literals",
+    name: "Template Literals",
+    layer: "FUNDAMENTALS",
+    category: "String Methods",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["let-const-usage"],
+    detectionRules: { patterns: ["TemplateLiteral"], check: "Detects template literal interpolation" },
+  },
+  {
+    slug: "string-split-join",
+    name: "String Split/Join",
+    layer: "FUNDAMENTALS",
+    category: "String Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .split() and .join() usage" },
+  },
+  {
+    slug: "string-search-methods",
+    name: "String Search Methods",
+    layer: "FUNDAMENTALS",
+    category: "String Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects string search methods" },
+  },
+  {
+    slug: "string-transform",
+    name: "String Transform",
+    layer: "FUNDAMENTALS",
+    category: "String Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects string transformation methods" },
+  },
+  {
+    slug: "string-slice-substring",
+    name: "String Slice/Substring",
+    layer: "FUNDAMENTALS",
+    category: "String Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .slice()/.substring() usage" },
+  },
+  {
+    slug: "string-pad-repeat",
+    name: "String Pad/Repeat",
+    layer: "FUNDAMENTALS",
+    category: "String Methods",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .padStart()/.padEnd()/.repeat()" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Object Methods (shared) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "object-keys-values-entries",
+    name: "Object.keys/values/entries",
+    layer: "FUNDAMENTALS",
+    category: "Object Methods",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects Object.keys/values/entries()" },
+  },
+  {
+    slug: "object-assign-freeze",
+    name: "Object.assign/freeze",
+    layer: "FUNDAMENTALS",
+    category: "Object Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["object-destructuring"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects Object.assign() and Object.freeze()" },
+  },
+  {
+    slug: "object-fromEntries",
+    name: "Object.fromEntries",
+    layer: "FUNDAMENTALS",
+    category: "Object Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["object-keys-values-entries"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects Object.fromEntries()" },
+  },
+  {
+    slug: "computed-property-names",
+    name: "Computed Property Names",
+    layer: "FUNDAMENTALS",
+    category: "Object Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["ObjectProperty"], check: "Detects computed property names [expr]" },
+  },
+  {
+    slug: "property-access-patterns",
+    name: "Property Access Patterns",
+    layer: "FUNDAMENTALS",
+    category: "Object Methods",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: [],
+    detectionRules: { patterns: ["MemberExpression"], check: "Detects dot vs bracket notation" },
+  },
+  {
+    slug: "property-existence-check",
+    name: "Property Existence Check",
+    layer: "FUNDAMENTALS",
+    category: "Object Methods",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["BinaryExpression", "CallExpression"], check: "Detects 'in' operator and hasOwnProperty" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Number & Math (js-pure) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "number-parsing",
+    name: "Number Parsing",
+    layer: "FUNDAMENTALS",
+    category: "Number & Math",
+    frameworkAffinity: "js-pure",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects parseInt/parseFloat/Number()" },
+  },
+  {
+    slug: "number-checking",
+    name: "Number Checking",
+    layer: "FUNDAMENTALS",
+    category: "Number & Math",
+    frameworkAffinity: "js-pure",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects Number.isNaN/isFinite/isInteger" },
+  },
+  {
+    slug: "number-formatting",
+    name: "Number Formatting",
+    layer: "FUNDAMENTALS",
+    category: "Number & Math",
+    frameworkAffinity: "js-pure",
+    criticality: "low",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects toFixed/toLocaleString" },
+  },
+  {
+    slug: "math-methods",
+    name: "Math Methods",
+    layer: "FUNDAMENTALS",
+    category: "Number & Math",
+    frameworkAffinity: "js-pure",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects Math.* methods" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — JSON Operations (shared) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "json-parse",
+    name: "JSON.parse",
+    layer: "FUNDAMENTALS",
+    category: "JSON Operations",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["try-catch"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects JSON.parse() with error handling" },
+  },
+  {
+    slug: "json-stringify",
+    name: "JSON.stringify",
+    layer: "FUNDAMENTALS",
+    category: "JSON Operations",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects JSON.stringify()" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Type Checking & Comparison (shared) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "typeof-operator",
+    name: "typeof Operator",
+    layer: "FUNDAMENTALS",
+    category: "Type Checking",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["UnaryExpression"], check: "Detects typeof operator" },
+  },
+  {
+    slug: "instanceof-operator",
+    name: "instanceof Operator",
+    layer: "FUNDAMENTALS",
+    category: "Type Checking",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["BinaryExpression"], check: "Detects instanceof operator" },
+  },
+  {
+    slug: "equality-operators",
+    name: "Equality Operators",
+    layer: "FUNDAMENTALS",
+    category: "Type Checking",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["BinaryExpression"], check: "Detects === vs == usage" },
+  },
+  {
+    slug: "ternary-operator",
+    name: "Ternary Operator",
+    layer: "FUNDAMENTALS",
+    category: "Type Checking",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["ConditionalExpression"], check: "Detects ternary operator" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Module Patterns (shared) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "import-export-named",
+    name: "Named Import/Export",
+    layer: "FUNDAMENTALS",
+    category: "Module Patterns",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["ImportDeclaration", "ExportNamedDeclaration"], check: "Detects named imports and exports" },
+  },
+  {
+    slug: "import-export-default",
+    name: "Default Import/Export",
+    layer: "FUNDAMENTALS",
+    category: "Module Patterns",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["ImportDeclaration", "ExportDefaultDeclaration"], check: "Detects default imports and exports" },
+  },
+  {
+    slug: "import-dynamic",
+    name: "Dynamic Import",
+    layer: "FUNDAMENTALS",
+    category: "Module Patterns",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["ImportExpression"], check: "Detects dynamic import()" },
+  },
+  {
+    slug: "import-namespace",
+    name: "Namespace Import",
+    layer: "FUNDAMENTALS",
+    category: "Module Patterns",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: [],
+    detectionRules: { patterns: ["ImportDeclaration"], check: "Detects import * as namespace" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Anti-Patterns (shared) - FUNDAMENTALS
+  // ============================================
+
+  {
+    slug: "no-var-usage",
+    name: "No var Usage",
+    layer: "FUNDAMENTALS",
+    category: "Anti-Patterns",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["let-const-usage"],
+    detectionRules: { patterns: ["VariableDeclaration"], check: "Flags var declarations" },
+  },
+  {
+    slug: "strict-equality",
+    name: "Strict Equality",
+    layer: "FUNDAMENTALS",
+    category: "Anti-Patterns",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["BinaryExpression"], check: "Flags == instead of ===" },
+  },
+  {
+    slug: "no-eval",
+    name: "No eval()",
+    layer: "FUNDAMENTALS",
+    category: "Anti-Patterns",
+    frameworkAffinity: "shared",
+    criticality: "critical",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Flags eval() usage" },
+  },
+  {
+    slug: "no-innerHTML",
+    name: "No innerHTML",
+    layer: "FUNDAMENTALS",
+    category: "Anti-Patterns",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["AssignmentExpression", "JSXAttribute"], check: "Flags innerHTML/dangerouslySetInnerHTML" },
+  },
+  {
+    slug: "no-magic-numbers",
+    name: "No Magic Numbers",
+    layer: "FUNDAMENTALS",
+    category: "Anti-Patterns",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: ["let-const-usage"],
+    detectionRules: { patterns: ["NumericLiteral"], check: "Flags unexplained numeric literals" },
+  },
+  {
+    slug: "empty-catch-blocks",
+    name: "Empty Catch Blocks",
+    layer: "FUNDAMENTALS",
+    category: "Anti-Patterns",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["try-catch"],
+    detectionRules: { patterns: ["TryStatement"], check: "Flags empty catch blocks" },
+  },
+  {
+    slug: "implicit-type-coercion",
+    name: "Implicit Type Coercion",
+    layer: "FUNDAMENTALS",
+    category: "Anti-Patterns",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["UnaryExpression", "BinaryExpression"], check: "Flags implicit type coercion patterns" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Modern Operators (shared) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "optional-chaining",
+    name: "Optional Chaining",
+    layer: "INTERMEDIATE",
+    category: "Modern Operators",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["property-access-patterns"],
+    detectionRules: { patterns: ["OptionalMemberExpression"], check: "Detects ?. operator" },
+  },
+  {
+    slug: "nullish-coalescing",
+    name: "Nullish Coalescing",
+    layer: "INTERMEDIATE",
+    category: "Modern Operators",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["LogicalExpression"], check: "Detects ?? operator" },
+  },
+  {
+    slug: "logical-assignment",
+    name: "Logical Assignment",
+    layer: "INTERMEDIATE",
+    category: "Modern Operators",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: [],
+    detectionRules: { patterns: ["AssignmentExpression"], check: "Detects &&=, ||=, ??= operators" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Control Flow (shared) - FUNDAMENTALS/INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "switch-case",
+    name: "Switch/Case",
+    layer: "FUNDAMENTALS",
+    category: "Control Flow",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["SwitchStatement"], check: "Detects switch/case statements" },
+  },
+  {
+    slug: "for-in-loops",
+    name: "For...in Loops",
+    layer: "INTERMEDIATE",
+    category: "Control Flow",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["for-loop-basics"],
+    detectionRules: { patterns: ["ForInStatement"], check: "Detects for...in loops" },
+  },
+  {
+    slug: "guard-clauses",
+    name: "Guard Clauses",
+    layer: "INTERMEDIATE",
+    category: "Control Flow",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["arrow-functions"],
+    detectionRules: { patterns: ["IfStatement", "ReturnStatement"], check: "Detects early return patterns" },
+  },
+  {
+    slug: "short-circuit-evaluation",
+    name: "Short-Circuit Evaluation",
+    layer: "FUNDAMENTALS",
+    category: "Control Flow",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["LogicalExpression"], check: "Detects && and || for conditional logic" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Class Syntax (js-pure) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "class-declaration",
+    name: "Class Declaration",
+    layer: "INTERMEDIATE",
+    category: "Class Syntax",
+    frameworkAffinity: "js-pure",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["ClassDeclaration"], check: "Detects class declarations" },
+  },
+  {
+    slug: "class-methods",
+    name: "Class Methods",
+    layer: "INTERMEDIATE",
+    category: "Class Syntax",
+    frameworkAffinity: "js-pure",
+    criticality: "high",
+    prerequisites: ["class-declaration"],
+    detectionRules: { patterns: ["ClassMethod"], check: "Detects class method definitions" },
+  },
+  {
+    slug: "class-inheritance",
+    name: "Class Inheritance",
+    layer: "INTERMEDIATE",
+    category: "Class Syntax",
+    frameworkAffinity: "js-pure",
+    criticality: "high",
+    prerequisites: ["class-declaration"],
+    detectionRules: { patterns: ["ClassDeclaration"], check: "Detects extends keyword" },
+  },
+  {
+    slug: "class-getters-setters",
+    name: "Class Getters/Setters",
+    layer: "INTERMEDIATE",
+    category: "Class Syntax",
+    frameworkAffinity: "js-pure",
+    criticality: "medium",
+    prerequisites: ["class-declaration"],
+    detectionRules: { patterns: ["ClassMethod"], check: "Detects get/set accessors" },
+  },
+  {
+    slug: "class-private-fields",
+    name: "Class Private Fields",
+    layer: "INTERMEDIATE",
+    category: "Class Syntax",
+    frameworkAffinity: "js-pure",
+    criticality: "medium",
+    prerequisites: ["class-declaration"],
+    detectionRules: { patterns: ["ClassPrivateProperty"], check: "Detects #private fields" },
+  },
+  {
+    slug: "class-properties",
+    name: "Class Properties",
+    layer: "INTERMEDIATE",
+    category: "Class Syntax",
+    frameworkAffinity: "js-pure",
+    criticality: "medium",
+    prerequisites: ["class-declaration"],
+    detectionRules: { patterns: ["ClassProperty"], check: "Detects public class fields" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Map & Set (shared) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "map-basics",
+    name: "Map Basics",
+    layer: "INTERMEDIATE",
+    category: "Map & Set",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects new Map() usage" },
+  },
+  {
+    slug: "set-basics",
+    name: "Set Basics",
+    layer: "INTERMEDIATE",
+    category: "Map & Set",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects new Set() usage" },
+  },
+  {
+    slug: "map-set-iteration",
+    name: "Map/Set Iteration",
+    layer: "INTERMEDIATE",
+    category: "Map & Set",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["map-basics"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects Map/Set iteration patterns" },
+  },
+  {
+    slug: "weakmap-weakref",
+    name: "WeakMap/WeakRef",
+    layer: "INTERMEDIATE",
+    category: "Map & Set",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: ["map-basics"],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects WeakMap/WeakSet/WeakRef" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Timers & Scheduling (shared) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "setTimeout-usage",
+    name: "setTimeout Usage",
+    layer: "INTERMEDIATE",
+    category: "Timers & Scheduling",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["callback-functions"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects setTimeout() usage" },
+  },
+  {
+    slug: "setInterval-usage",
+    name: "setInterval Usage",
+    layer: "INTERMEDIATE",
+    category: "Timers & Scheduling",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["setTimeout-usage"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects setInterval() with cleanup" },
+  },
+  {
+    slug: "requestAnimationFrame-usage",
+    name: "requestAnimationFrame",
+    layer: "INTERMEDIATE",
+    category: "Timers & Scheduling",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["callback-functions"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects rAF usage" },
+  },
+  {
+    slug: "debounce-throttle",
+    name: "Debounce/Throttle",
+    layer: "INTERMEDIATE",
+    category: "Timers & Scheduling",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["setTimeout-usage", "closure-basics"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects debounce/throttle patterns" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Date Handling (shared) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "date-creation",
+    name: "Date Creation",
+    layer: "INTERMEDIATE",
+    category: "Date Handling",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects new Date() and Date.now()" },
+  },
+  {
+    slug: "date-formatting",
+    name: "Date Formatting",
+    layer: "INTERMEDIATE",
+    category: "Date Handling",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["date-creation"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects date formatting methods" },
+  },
+  {
+    slug: "date-methods",
+    name: "Date Methods",
+    layer: "INTERMEDIATE",
+    category: "Date Handling",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["date-creation"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects getFullYear/setDate etc." },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Regex (shared) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "regex-literal",
+    name: "Regex Literal",
+    layer: "INTERMEDIATE",
+    category: "Regex",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["RegExpLiteral"], check: "Detects /pattern/ and new RegExp()" },
+  },
+  {
+    slug: "regex-methods",
+    name: "Regex Methods",
+    layer: "INTERMEDIATE",
+    category: "Regex",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["regex-literal"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects .test() and .exec()" },
+  },
+  {
+    slug: "regex-flags",
+    name: "Regex Flags",
+    layer: "INTERMEDIATE",
+    category: "Regex",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: ["regex-literal"],
+    detectionRules: { patterns: ["RegExpLiteral"], check: "Detects regex flags (g, i, m, etc.)" },
+  },
+  {
+    slug: "regex-groups",
+    name: "Regex Groups",
+    layer: "INTERMEDIATE",
+    category: "Regex",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["regex-literal"],
+    detectionRules: { patterns: ["RegExpLiteral"], check: "Detects capture/named groups" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — DOM Operations (shared) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "dom-query-selectors",
+    name: "DOM Query Selectors",
+    layer: "INTERMEDIATE",
+    category: "DOM Operations",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects querySelector/getElementById" },
+  },
+  {
+    slug: "dom-manipulation",
+    name: "DOM Manipulation",
+    layer: "INTERMEDIATE",
+    category: "DOM Operations",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["dom-query-selectors"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects createElement/appendChild etc." },
+  },
+  {
+    slug: "dom-events",
+    name: "DOM Events",
+    layer: "INTERMEDIATE",
+    category: "DOM Operations",
+    frameworkAffinity: "shared",
+    criticality: "high",
+    prerequisites: ["dom-query-selectors"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects addEventListener" },
+  },
+  {
+    slug: "dom-classlist",
+    name: "DOM classList",
+    layer: "INTERMEDIATE",
+    category: "DOM Operations",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["dom-query-selectors"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects classList.add/remove/toggle" },
+  },
+  {
+    slug: "dom-dataset",
+    name: "DOM dataset",
+    layer: "INTERMEDIATE",
+    category: "DOM Operations",
+    frameworkAffinity: "shared",
+    criticality: "low",
+    prerequisites: ["dom-query-selectors"],
+    detectionRules: { patterns: ["MemberExpression"], check: "Detects element.dataset access" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Browser APIs (shared) - INTERMEDIATE
+  // ============================================
+
+  {
+    slug: "localStorage-usage",
+    name: "localStorage Usage",
+    layer: "INTERMEDIATE",
+    category: "Browser APIs",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["json-stringify"],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects localStorage/sessionStorage" },
+  },
+  {
+    slug: "url-api",
+    name: "URL API",
+    layer: "INTERMEDIATE",
+    category: "Browser APIs",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects new URL()/URLSearchParams" },
+  },
+  {
+    slug: "formdata-api",
+    name: "FormData API",
+    layer: "INTERMEDIATE",
+    category: "Browser APIs",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects new FormData()" },
+  },
+  {
+    slug: "history-api",
+    name: "History API",
+    layer: "INTERMEDIATE",
+    category: "Browser APIs",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: [],
+    detectionRules: { patterns: ["CallExpression"], check: "Detects history.pushState/replaceState" },
+  },
+
+  // ============================================
+  // EXPANDED TOPICS — Observer APIs (shared) - PATTERNS
+  // ============================================
+
+  {
+    slug: "intersection-observer",
+    name: "IntersectionObserver",
+    layer: "PATTERNS",
+    category: "Observer APIs",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["callback-functions"],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects IntersectionObserver" },
+  },
+  {
+    slug: "mutation-observer",
+    name: "MutationObserver",
+    layer: "PATTERNS",
+    category: "Observer APIs",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["callback-functions"],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects MutationObserver" },
+  },
+  {
+    slug: "resize-observer",
+    name: "ResizeObserver",
+    layer: "PATTERNS",
+    category: "Observer APIs",
+    frameworkAffinity: "shared",
+    criticality: "medium",
+    prerequisites: ["callback-functions"],
+    detectionRules: { patterns: ["NewExpression"], check: "Detects ResizeObserver" },
+  },
 ];
 
 async function main() {
-  console.log("Seeding topics...");
+  // Merge Babel topics with ESLint topics (avoid slug collisions)
+  const babelSlugs = new Set(topics.map((t) => t.slug));
+  const eslintTopics = eslintTopicsRaw.filter((t) => !babelSlugs.has(t.slug));
+
+  // Merge data flow topics (normalize framework field)
+  const existingSlugs = new Set([...babelSlugs, ...eslintTopics.map((t) => t.slug)]);
+  const dataflowTopics = dataflowTopicsRaw
+    .filter((t) => !existingSlugs.has(t.slug))
+    .map((t) => ({
+      slug: t.slug,
+      name: t.name,
+      layer: t.layer,
+      category: t.category,
+      frameworkAffinity: t.framework === "react-specific" ? "react-specific" : t.framework === "js-pure" ? "js-pure" : "shared",
+      criticality: t.criticality,
+      prerequisites: t.prerequisites,
+      detectionRules: { type: "dataflow", relatedTopics: t.relatedTopics },
+    }));
+
+  const allTopics = [...topics, ...eslintTopics, ...dataflowTopics];
+
+  console.log(`Seeding ${allTopics.length} topics (${topics.length} Babel + ${eslintTopics.length} ESLint + ${dataflowTopics.length} Data Flow)...`);
 
   // First, create a map of slug to topic for prerequisite resolution
   const slugToId = new Map<string, number>();
 
   // Insert all topics first without prerequisites
-  for (let i = 0; i < topics.length; i++) {
-    const topic = topics[i];
+  for (let i = 0; i < allTopics.length; i++) {
+    const topic = allTopics[i];
     const created = await prisma.topic.upsert({
       where: { slug: topic.slug },
       update: {
@@ -1380,11 +2354,18 @@ async function main() {
       },
     });
     slugToId.set(topic.slug, created.id);
-    console.log(`Created topic: ${topic.slug} (ID: ${created.id})`);
+    if (i < topics.length) {
+      console.log(`[Babel] ${topic.slug} (ID: ${created.id})`);
+    } else if (i < topics.length + eslintTopics.length) {
+      console.log(`[ESLint] ${topic.slug} (ID: ${created.id})`);
+    } else {
+      console.log(`[DataFlow] ${topic.slug} (ID: ${created.id})`);
+    }
   }
 
-  // Now update prerequisites with actual IDs
-  for (const topic of topics) {
+  // Now update prerequisites with actual IDs (Babel + data flow topics have prerequisites)
+  const topicsWithPrereqs = [...topics, ...dataflowTopics];
+  for (const topic of topicsWithPrereqs) {
     if (topic.prerequisites.length > 0) {
       const prerequisiteIds = topic.prerequisites
         .map((slug) => slugToId.get(slug))
@@ -1398,22 +2379,25 @@ async function main() {
     }
   }
 
-  console.log(`\nSeeded ${topics.length} topics successfully!`);
+  console.log(`\nSeeded ${allTopics.length} topics successfully!`);
+  console.log(`  Babel AST topics: ${topics.length}`);
+  console.log(`  ESLint topics: ${eslintTopics.length}`);
+  console.log(`  Data Flow topics: ${dataflowTopics.length}`);
 
   // Print summary by layer
-  const fundamentals = topics.filter((t) => t.layer === "FUNDAMENTALS");
-  const intermediate = topics.filter((t) => t.layer === "INTERMEDIATE");
-  const patterns = topics.filter((t) => t.layer === "PATTERNS");
+  const fundamentals = allTopics.filter((t) => t.layer === "FUNDAMENTALS");
+  const intermediate = allTopics.filter((t) => t.layer === "INTERMEDIATE");
+  const patterns = allTopics.filter((t) => t.layer === "PATTERNS");
 
-  console.log("\nSummary:");
+  console.log("\nBy Layer:");
   console.log(`  FUNDAMENTALS: ${fundamentals.length} topics`);
   console.log(`  INTERMEDIATE: ${intermediate.length} topics`);
   console.log(`  PATTERNS: ${patterns.length} topics`);
 
   // Print by affinity
-  const jsPure = topics.filter((t) => t.frameworkAffinity === "js-pure");
-  const reactSpecific = topics.filter((t) => t.frameworkAffinity === "react-specific");
-  const shared = topics.filter((t) => t.frameworkAffinity === "shared");
+  const jsPure = allTopics.filter((t) => t.frameworkAffinity === "js-pure");
+  const reactSpecific = allTopics.filter((t) => t.frameworkAffinity === "react-specific");
+  const shared = allTopics.filter((t) => t.frameworkAffinity === "shared");
 
   console.log("\nBy Framework Affinity:");
   console.log(`  js-pure: ${jsPure.length} topics`);

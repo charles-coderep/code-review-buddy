@@ -15,6 +15,8 @@ import {
   Check,
   FileCode,
   Search,
+  Shield,
+  GitBranch,
   BarChart3,
   Brain,
   Database,
@@ -27,7 +29,9 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 
 const PIPELINE_STAGES = [
   { id: "parse", label: "Parsing AST", detail: "Building syntax tree with Babel", icon: FileCode, duration: 800 },
-  { id: "detect", label: "Detecting patterns", detail: "Running 13 detectors across 98 topics", icon: Search, duration: 1200 },
+  { id: "detect", label: "Detecting patterns", detail: "Running 30 detectors across 180+ topics", icon: Search, duration: 1000 },
+  { id: "lint", label: "Running ESLint", detail: "Checking ~120 code quality rules", icon: Shield, duration: 500 },
+  { id: "dataflow", label: "Analyzing data flow", detail: "Detecting semantic patterns and reference issues", icon: GitBranch, duration: 400 },
   { id: "rate", label: "Updating Glicko-2 ratings", detail: "Calculating skill changes", icon: BarChart3, duration: 1500 },
   { id: "ai", label: "Coaching with AI", detail: "Generating feedback with Grok", icon: Brain, duration: 12000 },
   { id: "save", label: "Saving progress", detail: "Updating your skill profile", icon: Database, duration: 1500 },

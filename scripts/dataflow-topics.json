@@ -1,0 +1,134 @@
+[
+  {
+    "slug": "object-reference-sharing",
+    "name": "Object Reference Sharing",
+    "description": "Detects when the same object is assigned to multiple variables or properties, then mutated through one reference — affecting all others unexpectedly.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["object-destructuring"],
+    "relatedTopics": ["spread-operator", "object-assign-freeze", "state-immutability"]
+  },
+  {
+    "slug": "nested-ternary",
+    "name": "Nested Ternary",
+    "description": "Detects ternary operators nested more than one level deep, which significantly reduce code readability.",
+    "layer": "INTERMEDIATE",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "medium",
+    "prerequisites": ["ternary-operator"],
+    "relatedTopics": ["guard-clauses", "switch-case"]
+  },
+  {
+    "slug": "deep-nesting",
+    "name": "Deep Nesting",
+    "description": "Detects code blocks nested more than 4 levels deep, indicating overly complex control flow that should be refactored.",
+    "layer": "INTERMEDIATE",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "medium",
+    "prerequisites": ["for-loop-basics"],
+    "relatedTopics": ["guard-clauses", "arrow-functions"]
+  },
+  {
+    "slug": "long-parameter-list",
+    "name": "Long Parameter List",
+    "description": "Detects functions with more than 4 parameters, suggesting an options object pattern would improve readability and maintainability.",
+    "layer": "INTERMEDIATE",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "low",
+    "prerequisites": ["object-destructuring"],
+    "relatedTopics": ["default-parameters", "rest-parameters"]
+  },
+  {
+    "slug": "state-mutation-react",
+    "name": "React State Mutation",
+    "description": "Detects direct mutation of useState variables (property assignment or mutating array methods) instead of using the setter function with a new object/array.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "react-specific",
+    "criticality": "critical",
+    "prerequisites": ["usestate-basics", "state-immutability"],
+    "relatedTopics": ["spread-operator", "array-slice-concat"]
+  },
+  {
+    "slug": "missing-cleanup-effect",
+    "name": "Missing Effect Cleanup",
+    "description": "Detects useEffect callbacks that set up subscriptions, intervals, or event listeners without returning a cleanup function, risking memory leaks.",
+    "layer": "INTERMEDIATE",
+    "category": "Data Flow",
+    "framework": "react-specific",
+    "criticality": "high",
+    "prerequisites": ["useeffect-basics", "useeffect-cleanup"],
+    "relatedTopics": ["setTimeout-usage", "setInterval-usage", "dom-events"]
+  },
+  {
+    "slug": "object-spread-missing",
+    "name": "Missing Object Spread",
+    "description": "Detects when an object or array is assigned by reference to multiple properties without copying, risking unintended shared mutation.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["spread-operator"],
+    "relatedTopics": ["object-reference-sharing", "object-assign-freeze"]
+  },
+  {
+    "slug": "array-method-no-return",
+    "name": "Array Method Missing Return",
+    "description": "Detects array methods like map, filter, find that require a return value but have callbacks with missing or conditional-only return paths.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["array-map", "array-filter"],
+    "relatedTopics": ["arrow-functions", "callback-functions"]
+  },
+  {
+    "slug": "var-used-before-init",
+    "name": "Var Used Before Initialization",
+    "description": "Detects when a var-declared variable is read before its initializer line executes. The var declaration is hoisted but the value is undefined until the assignment runs, leading to unexpected undefined values or TypeErrors.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "critical",
+    "prerequisites": ["let-const-usage", "var-hoisting"],
+    "relatedTopics": ["temporal-dead-zone", "block-vs-function-scope"]
+  },
+  {
+    "slug": "array-as-object",
+    "name": "Array Used as Object",
+    "description": "Detects when an array declared with [] is used with string keys (e.g. arr[\"name\"] = ...), which creates object properties that .length, numeric indexing, and array iteration methods will miss. Use a plain object {} or Map instead.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["bracket-notation"],
+    "relatedTopics": ["map-basics", "object-keys-values-entries", "property-access-patterns"]
+  },
+  {
+    "slug": "loop-bounds-off-by-one",
+    "name": "Loop Bounds Off-by-One",
+    "description": "Detects for loops where i <= arr.length causes one extra iteration beyond the array bounds. When i equals arr.length, arr[i] returns undefined. Use i < arr.length instead.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["for-loop-basics", "array-length"],
+    "relatedTopics": ["bracket-notation", "array-indexOf-includes", "for-of-loops"]
+  },
+  {
+    "slug": "string-arithmetic-coercion",
+    "name": "String Arithmetic Coercion",
+    "description": "Detects arithmetic operations (*, -, /, %) where one operand is a string. JavaScript silently coerces strings to numbers, producing NaN for non-numeric values. Use Number() or parseInt() for explicit conversion.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["number-parsing"],
+    "relatedTopics": ["implicit-type-coercion", "typeof-operator", "number-checking"]
+  }
+]

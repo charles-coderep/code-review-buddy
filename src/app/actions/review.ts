@@ -63,6 +63,7 @@ export interface ReviewResult {
       isIdiomatic: boolean;
       details?: string;
       location?: { line: number; column: number };
+      source?: "babel" | "eslint" | "dataflow";
     }>;
     performanceScores: Array<{
       topicSlug: string;
@@ -147,7 +148,12 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
     const detectedTopicSlugs = [...new Set(analysis.detections.map((d) => d.topicSlug))];
     const detectedTopics = detectedTopicSlugs.map((slug) => {
       const detection = analysis.detections.find((d) => d.topicSlug === slug);
-      return { slug, location: detection?.location };
+      return {
+        slug,
+        location: detection?.location,
+        source: detection?.source,
+        details: detection?.details,
+      };
     });
 
     // Get topic slugs to IDs mapping (from all detected topics)
@@ -423,6 +429,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
           isIdiomatic: d.isIdiomatic,
           details: d.details,
           location: d.location,
+          source: d.source,
         })),
         performanceScores: topicPerformances.map((p) => ({
           topicSlug: p.topicSlug,

@@ -3,14 +3,214 @@
 ## Project Overview
 AI-powered coding coach using Glicko-2 ratings to track JavaScript/React skill mastery. Not a tutorial platform — an always-on coach that uses your own code to push your existing knowledge forward. Builds persistent mental model of each learner, adapts coaching when stuck, tracks confidence separately from skill level, and tells you what to practice next.
 
+## Current Status
+**APP FUNCTIONAL** — Full stack working: signup → login → dashboard → submit code → AI coaching feedback → skill tracking.
+
+**AI-Driven Evaluation Refactor: COMPLETE** — AST handles topic detection (which topics?), AI handles evaluation (used correctly?), Glicko-2 updates driven by AI scores with AST fallback.
+
+**AST Detector Expansion: COMPLETE** — Expanded from 13 to 30 detector files covering ~180 topic markers. Type inference utility added. All detectors registered in index.ts, all topics seeded in seed.ts.
+
+**ESLint Integration: COMPLETE** — Programmatic ESLint analysis added as second detection layer. ~152 ESLint rules mapped to topics (22 overlap with existing Babel topics, ~130 new).
+
+**Data Flow Detection: COMPLETE** — 9 semantic data flow detectors (alias tracking, reference sharing, nesting analysis, React state mutation, loop bounds). Catches issues that syntax-only detectors and lint rules miss.
+
+**Total topics: 345** (181 Babel + 152 ESLint + 12 Data Flow)
+
+**Pipeline:**
+```
+Code → Babel AST Parse → AST Detectors (topic presence)
+                       → ESLint Linter (rule violations)
+                       → Data Flow Analyzer (semantic patterns)
+     → Merge detections → Grok AI (correctness scoring + coaching) → Glicko-2 (rating update) → Save
+```
+
 ## Tech Stack
 - **Framework:** Next.js 14 (App Router)
 - **Frontend:** React 18, Tailwind CSS, shadcn/ui, Monaco Editor
-- **Database:** PostgreSQL (Neon/Vercel Postgres), Prisma ORM
-- **Auth:** NextAuth.js v5
-- **AI:** xAI Grok API
-- **Code Analysis:** Babel Parser (AST)
+- **Database:** PostgreSQL (Supabase), Prisma 7 ORM
+- **Auth:** NextAuth.js v5 (Credentials, JWT strategy)
+- **AI:** xAI Grok API (grok-4-latest)
+- **Code Analysis:** Babel Parser (AST) + custom detectors + ESLint (programmatic Linter) + Data Flow analysis
 - **Deployment:** Vercel, Sentry, Stripe
+
+## File Structure
+```
+src/
+├── app/
+│   ├── actions/
+│   │   ├── review.ts          # Main code submission server action
+│   │   └── user.ts            # User/signup server action
+│   ├── (dashboard)/
+│   │   └── dashboard/page.tsx # Dashboard page
+│   ├── review/page.tsx        # Code submission page (Monaco editor)
+│   ├── skills/page.tsx        # Skill matrix view
+│   ├── login/page.tsx         # Login page
+│   ├── signup/page.tsx        # Signup page
+│   └── page.tsx               # Landing page
+├── components/
+│   ├── review/
+│   │   └── review-results.tsx # Results display (feedback + skill changes + engine details)
+│   ├── dashboard/             # Dashboard components
+│   └── ui/                    # shadcn/ui components
+├── lib/
+│   ├── analysis/
+│   │   ├── parser.ts          # Babel AST parser + traverse helpers
+│   │   ├── index.ts           # Analysis orchestrator (runs all detectors + ESLint)
+│   │   ├── eslintDetector.ts  # ESLint programmatic analysis (Linter class, ~120 rules)
+│   │   ├── dataFlowDetector.ts # Data flow analysis (8 semantic detectors)
+│   │   ├── typeInference.ts    # Type inference + alias tracking utility
+│   │   └── detectors/         # AST detector files (one per category, 30 total)
+│   │       ├── arrayMethods.ts          # map, filter, reduce, find, some/every, forEach, chaining
+│   │       ├── arrayMutationMethods.ts  # push/pop, shift/unshift, splice, indexOf/includes, sort, slice/concat, flat/flatMap, Array.from/isArray, length, bracket notation
+│   │       ├── asyncPatterns.ts         # promises, async/await, Promise.all/race
+│   │       ├── reactHooks.ts            # useState, useEffect basics
+│   │       ├── jsxPatterns.ts           # JSX syntax, expressions, conditional/list rendering, keys
+│   │       ├── errorHandling.ts         # try/catch, throw, fetch error checking, let/const, destructuring, spread, arrows
+│   │       ├── variablePatterns.ts      # var-hoisting, TDZ, block/function scope, object shorthand
+│   │       ├── functionPatterns.ts      # default/rest params, pure functions, callbacks, HOF, closures
+│   │       ├── loopsAndContext.ts       # for/for-of/while, this binding, bind/call/apply, arrow vs regular this
+│   │       ├── advancedHooks.ts         # useEffect mastery, useRef
+│   │       ├── componentPatterns.ts     # controlled/uncontrolled, composition, conditional rendering
+│   │       ├── statePatterns.ts         # useReducer, reducer patterns, complex state
+│   │       ├── advancedReactPatterns.ts # custom hooks, context, performance optimization
+│   │       ├── errorBoundaries.ts       # error boundary class components
+│   │       ├── stringMethods.ts         # template literals, split/join, search, transform, slice/substring, pad/repeat
+│   │       ├── objectMethods.ts         # keys/values/entries, assign/freeze, fromEntries, computed props, property access/existence
+│   │       ├── numberMath.ts            # parsing, checking, formatting, Math methods
+│   │       ├── jsonOperations.ts        # JSON.parse (with error handling check), JSON.stringify
+│   │       ├── modernOperators.ts       # optional chaining, nullish coalescing, logical assignment, typeof, instanceof, equality, ternary
+│   │       ├── controlFlow.ts           # switch/case, for...in, guard clauses, short-circuit evaluation
+│   │       ├── classSyntax.ts           # declaration, methods, inheritance, getters/setters, private fields, properties
+│   │       ├── modulePatterns.ts        # import/export (named, default, dynamic, namespace)
+│   │       ├── mapSetCollections.ts     # Map, Set, iteration, WeakMap/WeakRef
+│   │       ├── timersScheduling.ts      # setTimeout, setInterval, rAF, debounce/throttle
+│   │       ├── dateHandling.ts          # Date creation, formatting, methods
+│   │       ├── regexPatterns.ts         # regex literals, methods, flags, groups
+│   │       ├── domOperations.ts         # query selectors, manipulation, events, classList, dataset
+│   │       ├── browserApis.ts           # localStorage, URL, FormData, History
+│   │       ├── observerApis.ts          # IntersectionObserver, MutationObserver, ResizeObserver
+│   │       └── antiPatterns.ts          # no-var, strict equality, eval, innerHTML, magic numbers, console, empty catch, type coercion
+│   ├── glicko2.ts             # Glicko-2 rating algorithm
+│   ├── grok.ts                # Grok AI integration (prompts, parsing, mock)
+│   ├── errorClassification.ts # SLIP/MISTAKE/MISCONCEPTION classification
+│   ├── stuckDetection.ts      # Stuck topic detection
+│   ├── prerequisites.ts       # Prerequisite chain analysis
+│   ├── progression.ts         # Layer unlock progression gates
+│   ├── auth.ts                # NextAuth v5 config
+│   ├── prisma.ts              # Prisma client
+│   └── constants.ts           # All config constants
+scripts/
+├── generate-eslint-topics.ts  # Generates ESLint topic catalog from rule metadata
+├── eslint-topics.json         # Generated: ~152 ESLint topics for DB seeding
+├── eslint-overlap-map.json    # Generated: ESLint rule → existing Babel slug mapping
+└── dataflow-topics.json       # 8 data flow topic definitions for DB seeding
+prisma/
+├── schema.prisma              # Database schema (9 models)
+├── prisma.config.ts           # Prisma 7 config (datasource URL)
+└── seed.ts                    # 345 topic markers seed (181 Babel + 152 ESLint + 12 Data Flow)
+```
+
+## Analysis Architecture
+
+### How AST Detectors Work
+Detectors are custom TypeScript files in `src/lib/analysis/detectors/`. Each file:
+1. Imports `traverse`, `isNodeType`, `getNodeLocation` from `parser.ts`
+2. Walks the Babel AST looking for specific node types (CallExpression, MemberExpression, etc.)
+3. Returns `Detection[]` — each detection maps to a topic slug with `isPositive`, `isNegative`, `isIdiomatic` flags
+4. The main `analyzeCode()` in `index.ts` calls all detectors and aggregates results
+
+### Detection Interface
+```typescript
+interface Detection {
+  topicSlug: string;      // maps to topics table slug
+  detected: boolean;       // always true when returned
+  isPositive: boolean;     // good usage
+  isNegative: boolean;     // problematic usage
+  isIdiomatic: boolean;    // best-practice usage
+  isTrivial?: boolean;     // minor issue
+  location?: { line: number; column: number };
+  details?: string;        // human-readable explanation
+  source?: "babel" | "eslint" | "dataflow"; // which engine produced this detection
+}
+```
+
+### Detector Registration
+In `src/lib/analysis/index.ts`, `analyzeCode()` calls:
+- **Always (JS — original 6):** detectArrayMethods, detectAsyncPatterns, detectErrorHandlingPatterns, detectVariablePatterns, detectFunctionPatterns, detectLoopsAndContext
+- **Always (JS — expanded 17):** detectArrayMutationMethods, detectStringMethods, detectObjectMethods, detectNumberMath, detectJsonOperations, detectModernOperators, detectControlFlow, detectClassSyntax, detectModulePatterns, detectMapSetCollections, detectTimersScheduling, detectDateHandling, detectRegexPatterns, detectDomOperations, detectBrowserApis, detectObserverApis, detectAntiPatterns
+- **React only:** detectReactHooks, detectJSXPatterns, detectAdvancedHooks, detectComponentPatterns, detectStatePatterns, detectAdvancedReactPatterns, detectErrorBoundaries
+- **ESLint (always, after Babel):** `analyzeWithESLint(code, isReact, hasTypeScript)` — runs ~120 rules, returns `Detection[]` with `source: "eslint"`
+- **Data Flow (always, after ESLint):** `analyzeDataFlow(ast, isReact)` — 8 semantic detectors, returns `Detection[]` with `source: "dataflow"`
+
+### ESLint Detection Layer
+
+**File:** `src/lib/analysis/eslintDetector.ts`
+
+The ESLint detector runs as a second detection pass after all Babel AST detectors. It uses ESLint's `Linter` class (synchronous, in-memory, no filesystem) with flat config.
+
+**Key design:**
+- **Overlap handling:** 22 ESLint rules overlap with existing Babel topic slugs (e.g., `no-var` → `no-var-usage`, `eqeqeq` → `strict-equality`). These map to the same slug — no duplicate topics.
+- **Non-overlapping rules:** Get `eslint-*` prefixed slugs (e.g., `eslint-no-unreachable`, `eslint-react-self-closing-comp`).
+- **Four configs:** `BASE_JS_CONFIG`, `BASE_TS_CONFIG`, `REACT_JS_CONFIG`, `REACT_TS_CONFIG` — selected based on framework and language detection.
+- **All ESLint detections:** `isPositive: false, isNegative: true` (violations only). `isTrivial: true` when auto-fixable.
+- **Graceful degradation:** Returns empty array if ESLint parsing fails.
+
+**Rule categories (~120 rules):**
+- FUNDAMENTALS: `for-direction`, `no-const-assign`, `no-dupe-keys`, `no-unreachable`, `use-isnan`, `valid-typeof`, `no-var`, `eqeqeq`, `prefer-const`, etc.
+- INTERMEDIATE: `array-callback-return`, `no-loop-func`, `consistent-return`, `no-else-return`, `no-param-reassign`, etc.
+- PATTERNS: `no-await-in-loop`, `complexity`, `require-await`, `prefer-named-capture-group`, etc.
+- REACT: `react/jsx-key`, `react/no-direct-mutation-state`, `react/jsx-no-target-blank`, `react/no-unstable-nested-components`, etc.
+- HOOKS: `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`, `react-hooks/set-state-in-render`, etc.
+
+**Grok prompt integration:** Detected topics are split by source in the AI prompt — "Detected Topics (AST)", "ESLint Violations", and "Data Flow Issues" — giving the AI context about which engine found each issue.
+
+**Topic generation:** `scripts/generate-eslint-topics.ts` extracts rule metadata from ESLint core + plugins, filters out deprecated/formatting/noise rules, and outputs `scripts/eslint-topics.json` (~152 topics). These are merged with Babel topics in `prisma/seed.ts`.
+
+**Bundling note:** `next.config.ts` includes `serverExternalPackages` for eslint, eslint-plugin-react, eslint-plugin-react-hooks, typescript-eslint, and globals — required because Turbopack cannot bundle ESLint's dependency tree (includes @babel/core).
+
+### Data Flow Detection Layer
+
+**File:** `src/lib/analysis/dataFlowDetector.ts`
+
+The data flow detector runs as a third detection pass after Babel and ESLint. It catches semantic patterns that pure syntax matching and lint rules cannot — like shared object references, missing returns in array callbacks, and React state mutations.
+
+**Key design:**
+- **Alias tracking foundation:** `typeInference.ts` extended with `buildAliasMap(ast, typeMap)` — tracks when variables point to the same object/array, detects property assignments and mutations through aliases.
+- **12 detectors, 2 React-only:** JS detectors always run; `state-mutation-react` and `missing-cleanup-effect` only run when React is detected.
+- **All detections:** `isPositive: false, isNegative: true` (semantic issues only). Tagged `source: "dataflow"`.
+
+**Detectors:**
+| Slug | Layer | What it catches |
+|------|-------|----------------|
+| `object-reference-sharing` | FUNDAMENTALS | Mutating shared object through alias affects all references |
+| `object-spread-missing` | FUNDAMENTALS | Same object assigned to multiple properties by reference |
+| `array-method-no-return` | FUNDAMENTALS | map/filter/find callback with no return or conditional-only return |
+| `var-used-before-init` | FUNDAMENTALS | Reading a var-declared variable before its initializer line (undefined due to hoisting) |
+| `array-as-object` | FUNDAMENTALS | Array declared with `[]` used with string keys (type confusion — .length and indexing break) |
+| `state-mutation-react` | FUNDAMENTALS | Direct mutation of useState variable (push, property assignment) |
+| `nested-ternary` | INTERMEDIATE | Ternary operators nested more than one level deep |
+| `deep-nesting` | INTERMEDIATE | Block statements nested more than 4 levels |
+| `long-parameter-list` | INTERMEDIATE | Functions with more than 4 parameters |
+| `missing-cleanup-effect` | INTERMEDIATE | useEffect with subscriptions/timers but no cleanup return |
+| `loop-bounds-off-by-one` | FUNDAMENTALS | for loop with i <= arr.length causes out-of-bounds access at arr[arr.length] |
+| `string-arithmetic-coercion` | FUNDAMENTALS | Arithmetic operator (*, -, /, %) with string operand causes silent coercion to number/NaN |
+
+**Topic definitions:** `scripts/dataflow-topics.json` (12 topics). Merged with Babel + ESLint topics in `prisma/seed.ts`.
+
+### Scoring Pipeline
+1. Babel AST detectors run → produce `Detection[]` with topic slugs (source: "babel")
+2. ESLint Linter runs → produce additional `Detection[]` (source: "eslint")
+3. Data Flow analyzer runs → produce additional `Detection[]` (source: "dataflow")
+4. All detections merged, sent to Grok AI with the code (split by source in prompt)
+4. AI returns `TOPIC_SCORES` block: `[{ slug, score (0-1), reason }]`
+5. AI scores drive Glicko-2 rating updates (with AST `scoreTopicPerformance()` as fallback)
+6. `scoringSource` field in engine details indicates "ai" or "ast-fallback"
+
+### Parser Helpers (from parser.ts)
+- `traverse(ast, visitor)` — walk all AST nodes
+- `findNodes(ast, predicate)` — find nodes matching type guard
+- `isNodeType<T>(node, "TypeName")` — type-safe node check
+- `getNodeLocation(node)` — get line/column from node
 
 ---
 
@@ -378,13 +578,173 @@ estimated_level: 'beginner' | 'intermediate' | 'advanced'
 | error-boundary-fallback | error-boundary-basics |
 | error-boundary-recovery | error-boundary-basics |
 
-### Summary by Affinity
-| Layer | Total | js-pure | react-specific | shared |
-|-------|-------|---------|----------------|--------|
-| Fundamentals | 42 | 4 | 9 | 29 |
-| Intermediate | 32 | 6 | 22 | 4 |
-| Patterns | 24 | 0 | 20 | 4 |
-| **Total** | **98** | **10** | **51** | **37** |
+### Summary by Affinity (Original 98 + 82 Expanded = 180 total)
+| Layer | Original | Expanded | Total |
+|-------|----------|----------|-------|
+| Fundamentals | 42 | 40 | 82 |
+| Intermediate | 32 | 39 | 71 |
+| Patterns | 24 | 3 | 27 |
+| **Total** | **98** | **82** | **180** |
+
+### EXPANDED TOPICS (new detectors)
+
+#### Array Mutation (shared) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| array-push-pop | none |
+| array-shift-unshift | array-push-pop |
+| array-splice | array-push-pop |
+| array-indexOf-includes | none |
+| array-sort | none |
+| array-slice-concat | none |
+| array-flat-flatMap | array-map |
+| array-from-isArray | none |
+| array-length | none |
+| bracket-notation | none |
+
+#### String Methods (shared) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| template-literals | let-const-usage |
+| string-split-join | none |
+| string-search-methods | none |
+| string-transform | none |
+| string-slice-substring | none |
+| string-pad-repeat | none |
+
+#### Object Methods (shared) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| object-keys-values-entries | none |
+| object-assign-freeze | object-destructuring |
+| object-fromEntries | object-keys-values-entries |
+| computed-property-names | none |
+| property-access-patterns | none |
+| property-existence-check | none |
+
+#### Number & Math (js-pure) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| number-parsing | none |
+| number-checking | none |
+| number-formatting | none |
+| math-methods | none |
+
+#### JSON Operations (shared) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| json-parse | try-catch |
+| json-stringify | none |
+
+#### Type Checking & Comparison (shared) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| typeof-operator | none |
+| instanceof-operator | none |
+| equality-operators | none |
+| ternary-operator | none |
+
+#### Module Patterns (shared) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| import-export-named | none |
+| import-export-default | none |
+| import-dynamic | none |
+| import-namespace | none |
+
+#### Modern Operators (shared) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| optional-chaining | property-access-patterns |
+| nullish-coalescing | none |
+| logical-assignment | none |
+
+#### Control Flow (shared) - FUNDAMENTALS/INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| switch-case | none |
+| for-in-loops | for-loop-basics |
+| guard-clauses | arrow-functions |
+| short-circuit-evaluation | none |
+
+#### Class Syntax (js-pure) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| class-declaration | none |
+| class-methods | class-declaration |
+| class-inheritance | class-declaration |
+| class-getters-setters | class-declaration |
+| class-private-fields | class-declaration |
+| class-properties | class-declaration |
+
+#### Map & Set (shared) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| map-basics | none |
+| set-basics | none |
+| map-set-iteration | map-basics |
+| weakmap-weakref | map-basics |
+
+#### Timers & Scheduling (shared) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| setTimeout-usage | callback-functions |
+| setInterval-usage | setTimeout-usage |
+| requestAnimationFrame-usage | callback-functions |
+| debounce-throttle | setTimeout-usage, closure-basics |
+
+#### Date Handling (shared) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| date-creation | none |
+| date-formatting | date-creation |
+| date-methods | date-creation |
+
+#### Regex (shared) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| regex-literal | none |
+| regex-methods | regex-literal |
+| regex-flags | regex-literal |
+| regex-groups | regex-literal |
+
+#### DOM Operations (shared) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| dom-query-selectors | none |
+| dom-manipulation | dom-query-selectors |
+| dom-events | dom-query-selectors |
+| dom-classlist | dom-query-selectors |
+| dom-dataset | dom-query-selectors |
+
+#### Browser APIs (shared) - INTERMEDIATE
+| Slug | Prerequisites |
+|------|---------------|
+| localStorage-usage | json-stringify |
+| url-api | none |
+| formdata-api | none |
+| history-api | none |
+
+#### Observer APIs (shared) - PATTERNS
+| Slug | Prerequisites |
+|------|---------------|
+| intersection-observer | callback-functions |
+| mutation-observer | callback-functions |
+| resize-observer | callback-functions |
+
+#### Anti-Patterns (shared) - FUNDAMENTALS
+| Slug | Prerequisites |
+|------|---------------|
+| no-var-usage | let-const-usage |
+| strict-equality | none |
+| no-eval | none |
+| no-innerHTML | none |
+| no-magic-numbers | let-const-usage |
+| empty-catch-blocks | try-catch |
+| implicit-type-coercion | none |
+
+### Type Inference Utility (IMPLEMENTED)
+`src/lib/analysis/typeInference.ts` — Shared utility that tracks variable types through the AST. Exports `buildTypeMap(ast)` → `Map<string, InferredType>`, `inferTypeFromNode(node)` → `InferredType`, and `isVariableType(typeMap, varName, expectedType)`. Infers types from initializers: ObjectExpression → object, ArrayExpression → array, StringLiteral → string, NumericLiteral → number, NewExpression(Map/Set/Date/Promise) → map/set/date/promise, etc.
 
 ---
 
@@ -422,28 +782,42 @@ RD increases over time without practice (τ = 0.5). Topic mastered 6 months ago:
 
 ### Separation of Concerns: Detection vs Evaluation
 
-The analysis pipeline has two distinct responsibilities that must be handled by different systems:
+The analysis pipeline has three detection layers followed by AI evaluation:
 
-**1. Topic Detection (AST — Babel Parser)**
-- **Role:** Identify which of the 98 topics appear in the submitted code
+**1a. Topic Detection (AST — Babel Parser)**
+- **Role:** Identify which of the ~182 Babel topics appear in the submitted code
 - **How:** Walk the AST looking for structural patterns (CallExpressions, JSX elements, hook usage, etc.)
-- **Output:** List of detected topic slugs with line/column locations
+- **Output:** List of detected topic slugs with line/column locations, `source: "babel"`
 - **Strength:** Fast, free, deterministic, reliable at finding what patterns exist
 - **Limitation:** Cannot assess correctness, semantics, or logic errors. Only sees structure.
 
+**1b. Rule Violation Detection (ESLint — Linter)**
+- **Role:** Catch code quality violations, best-practice issues, and error-prone patterns
+- **How:** Run ESLint's `Linter` class with ~120 rules (core + React + Hooks) on raw code
+- **Output:** List of violation-based detections, `source: "eslint"`, always `isNegative: true`
+- **Strength:** Catches patterns AST detectors miss (unreachable code, missing returns, complexity, React-specific issues)
+- **Overlap:** 22 rules map to existing Babel slugs; rest get `eslint-*` prefixed slugs
+
+**1c. Semantic Analysis (Data Flow — Custom)**
+- **Role:** Catch semantic issues that syntax matching and lint rules cannot detect
+- **How:** Alias tracking + type inference on AST, then 8 specialized detectors
+- **Output:** List of semantic detections, `source: "dataflow"`, always `isNegative: true`
+- **Strength:** Catches shared object mutation, missing array callback returns, React state mutation, deep nesting, long parameter lists
+- **Topics:** 12 (object-reference-sharing, object-spread-missing, array-method-no-return, var-used-before-init, array-as-object, state-mutation-react, nested-ternary, deep-nesting, long-parameter-list, missing-cleanup-effect, loop-bounds-off-by-one, string-arithmetic-coercion)
+
 **2. Topic Evaluation (AI — Grok)**
 - **Role:** Assess whether each detected topic is used correctly and score it
-- **How:** Receives the code + list of detected topics, returns structured per-topic scores
+- **How:** Receives the code + list of detected topics (by source), returns structured per-topic scores
 - **Output:** Per-topic performance scores (0.0-1.0) that drive Glicko-2 rating updates
 - **Strength:** Understands semantics, catches logic errors, missing returns, wrong variable references, misuse of APIs
 - **Why needed:** AST pattern matching cannot determine if `.filter()` is used correctly — only that it's present. The AI can see that a filter callback with no return produces an empty array.
 
 **Pipeline flow:**
 ```
-Code → AST Detection (which topics?) → AI Evaluation (used correctly?) → Glicko-2 Update (rating change) → Save
+Code → Babel AST Detection (which topics?) + ESLint Linter (rule violations) + Data Flow (semantic issues) → Merge → AI Evaluation (used correctly?) → Glicko-2 Update (rating change) → Save
 ```
 
-The AST should NOT score positive/negative — it should only report topic presence. The AI returns structured JSON with per-topic assessments that the Glicko-2 system uses for rating updates.
+The AST should NOT score positive/negative — it should only report topic presence. ESLint and Data Flow report violations (always negative). The AI returns structured JSON with per-topic assessments that the Glicko-2 system uses for rating updates.
 
 ### AST Detection Rules (Pattern Examples)
 
@@ -463,6 +837,15 @@ The AI should return structured JSON alongside coaching text:
   ]
 }
 ```
+
+### AI Scoring Strictness
+The system prompt includes critical scoring rules to prevent generous scores that inflate Glicko-2 ratings:
+- Scores must reflect **actual correctness**, not intent or awareness
+- If coaching text criticizes a topic, the score must reflect the criticism (no 0.8 for a topic you just called out as broken)
+- Code that crashes at runtime (TypeError, ReferenceError) = 0.0 for that topic
+- Type confusion (e.g., array used with string keys) = 0.3 or lower
+- "Demonstrates awareness" is not correct usage — relying on `var` hoisting to read `undefined` values = 0.0
+- When in doubt, score lower — generous scores hide real skill gaps
 
 ### Framework Context Detection
 React signals: React imports, hook usage (useState, useEffect), JSX elements
@@ -527,3 +910,18 @@ When user fails Topic X, check all prerequisites. Find lowest weak prerequisite 
 - Framework preference toggles
 - Progression gates
 - Testing + deployment
+
+### Phase 5: ESLint Integration
+- Programmatic ESLint analysis (Linter class, flat config)
+- ~120 rules across core JS, React, and Hooks
+- Overlap mapping (22 rules → existing Babel slugs)
+- ~152 new ESLint topic markers in DB
+- Merged detection pipeline (Babel + ESLint → AI → Glicko-2)
+- serverExternalPackages for Turbopack compatibility
+
+### Phase 6: Data Flow Detection
+- Alias tracking in typeInference.ts (buildAliasMap)
+- 10 semantic detectors in dataFlowDetector.ts
+- Catches: shared object mutation, missing returns, React state mutation, deep nesting, long params, loop bounds off-by-one, string arithmetic coercion
+- 12 new topic markers in DB (345 total)
+- Three-layer detection pipeline (Babel + ESLint + Data Flow → AI → Glicko-2)

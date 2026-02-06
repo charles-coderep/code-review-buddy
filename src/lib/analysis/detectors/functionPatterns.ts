@@ -194,6 +194,21 @@ export function detectCallbackFunctions(ast: File): FunctionDetection[] {
   const detections: FunctionDetection[] = [];
   let found = false;
 
+  // Methods known to accept callback functions as arguments
+  const callbackAcceptingMethods = new Set([
+    // Array methods
+    "map", "filter", "reduce", "find", "findIndex", "some", "every",
+    "forEach", "flatMap", "sort",
+    // Timers/scheduling
+    "setTimeout", "setInterval", "requestAnimationFrame",
+    // Event/DOM
+    "addEventListener", "removeEventListener",
+    // Promise
+    "then", "catch", "finally",
+    // Other
+    "subscribe", "observe", "on", "once",
+  ]);
+
   traverse(ast, (node) => {
     if (found) return;
 
@@ -207,18 +222,26 @@ export function detectCallbackFunctions(ast: File): FunctionDetection[] {
       callee?: { type?: string; name?: string; property?: { name?: string } };
     };
 
-    // Skip hook calls and common built-in callbacks
+    // Skip hook calls
     const calleeName = call.callee?.name ?? call.callee?.property?.name ?? "";
     if (/^use[A-Z]/.test(calleeName)) return;
 
-    const hasCallbackArg = call.arguments?.some(
+    // Only count inline function expressions as callbacks (always a callback)
+    const hasInlineCallback = call.arguments?.some(
       (arg) =>
         arg.type === "ArrowFunctionExpression" ||
-        arg.type === "FunctionExpression" ||
-        arg.type === "Identifier"
+        arg.type === "FunctionExpression"
     );
 
-    if (hasCallbackArg) {
+    // For Identifier arguments, only count them if passed to a known
+    // callback-accepting method (e.g. arr.map(fn), setTimeout(handler))
+    // This avoids false positives like addTax(price, taxRate) where
+    // Identifier args are just variable values, not function references.
+    const hasIdentifierCallback = !hasInlineCallback &&
+      callbackAcceptingMethods.has(calleeName) &&
+      call.arguments?.some((arg) => arg.type === "Identifier");
+
+    if (hasInlineCallback || hasIdentifierCallback) {
       found = true;
       detections.push({
         topicSlug: "callback-functions",

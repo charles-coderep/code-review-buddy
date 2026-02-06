@@ -25,6 +25,8 @@ export interface GrokRequest {
   detectedTopics: Array<{
     slug: string;
     location?: { line: number; column: number };
+    source?: "babel" | "eslint" | "dataflow";
+    details?: string;
   }>;
   userContext: UserContext;
 }
@@ -83,7 +85,14 @@ IMPORTANT RULES:
 6. Limit feedback to 2-3 key points to avoid overwhelming
 7. Suggest what to practice next based on weak areas
 8. Do NOT include a title or top-level heading — just start with the feedback content directly
-9. Keep responses concise and actionable`;
+9. Keep responses concise and actionable
+10. Prioritize issues by severity when choosing your 2-3 key points:
+    - CRITICAL (address first): Runtime errors — TypeError, ReferenceError, code that crashes or produces wrong results
+    - HIGH: Logic bugs — incorrect behavior, wrong output, misuse of language features (e.g., arrow function this binding)
+    - MEDIUM: Performance issues, missing error handling, potential bugs in edge cases
+    - LOW: Style issues, naming conventions, code organization
+    Never lead with style feedback when runtime errors or logic bugs are present.
+11. Console statements (console.log, console.warn, etc.) are ENCOURAGED as pedagogical tools for learning and debugging. Do NOT flag them as issues or suggest removing them.`;
 
   const scaffoldingInstructions = {
     HIGH: `
@@ -123,7 +132,20 @@ After your coaching feedback, you MUST include a TOPIC_SCORES block with your as
 ]
 \`\`\`
 
-Score guide: 1.0 = perfect/idiomatic, 0.8 = correct but not idiomatic, 0.6 = minor issue, 0.3 = significant mistake, 0.0 = fundamental misunderstanding or broken`;
+SCORE GUIDE — be strict, not generous:
+- 1.0 = perfect, idiomatic usage with no issues
+- 0.8 = correct and working but not idiomatic (e.g., arrow function works but could use implicit return)
+- 0.6 = minor issue that doesn't break functionality (e.g., unnecessary else after return)
+- 0.3 = significant mistake that causes bugs or misuse (e.g., using an array with string keys, calling a function before it's assigned)
+- 0.0 = fundamental misunderstanding or code that crashes/produces wrong results (e.g., filter callback with no return, reading a variable before its initializer runs)
+
+CRITICAL SCORING RULES:
+1. Score based on ACTUAL CORRECTNESS, not intent. If the code would crash or produce wrong results at runtime, score 0.0-0.3 even if the user "knows" the concept.
+2. If your coaching text identifies a problem with a topic, the score MUST reflect that problem. Do NOT give 0.8 to a topic you just criticized.
+3. "Demonstrates awareness of a concept" is NOT correct usage. Using var and relying on hoisting to access undefined values is a 0.0, not a 0.8.
+4. Type confusion is a significant mistake (0.3 or lower). Example: declaring [] then using string keys makes .length wrong and numeric indexing fail.
+5. Code that throws a runtime error (TypeError, ReferenceError) for a topic earns 0.0 for that topic.
+6. When in doubt, score LOWER. Generous scores inflate ratings and hide real skill gaps.`;
 
   return `${basePrompt}
 
@@ -171,16 +193,28 @@ Consider addressing this foundational gap before diving deep into the current to
 export function buildUserPrompt(request: GrokRequest): string {
   const { code, language, issues, positiveFindings, detectedTopics, userContext } = request;
 
+  const astTopics = detectedTopics.filter((t) => t.source !== "eslint" && t.source !== "dataflow");
+  const eslintTopics = detectedTopics.filter((t) => t.source === "eslint");
+  const dataflowTopics = detectedTopics.filter((t) => t.source === "dataflow");
+
   let prompt = `## Code to Review (${language}${userContext.isReact ? "/React" : ""})
 
 \`\`\`${language}
 ${code.slice(0, API_CONFIG.MAX_CODE_LENGTH)}
 \`\`\`
 
-## Detected Topics
-The following topics were found in the code by AST analysis. Evaluate each for correctness:
-${detectedTopics.map((t) => `- ${t.slug}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
-
+## Detected Topics (AST)
+The following topics were found in the code by Babel AST analysis. Evaluate each for correctness:
+${astTopics.map((t) => `- ${t.slug}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
+${eslintTopics.length > 0 ? `
+## ESLint Violations
+The following issues were flagged by ESLint static analysis:
+${eslintTopics.map((t) => `- ${t.slug}: ${t.details || "violation detected"}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
+` : ""}${dataflowTopics.length > 0 ? `
+## Data Flow Issues
+The following semantic issues were detected by data flow analysis:
+${dataflowTopics.map((t) => `- ${t.slug}: ${t.details || "issue detected"}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
+` : ""}
 ## AST Analysis Context
 
 ### Issues Flagged by AST (${issues.length}):
@@ -230,10 +264,14 @@ Format your response in markdown with clear sections.`;
  * Extract TOPIC_SCORES JSON block from AI response text
  */
 export function parseTopicScores(text: string): TopicScore[] {
-  const match = text.match(/```TOPIC_SCORES\n([\s\S]*?)```/);
-  if (!match) return [];
+  // Try fenced format first: ```TOPIC_SCORES\n[...]\n```
+  const fencedMatch = text.match(/```\s*TOPIC_SCORES\s*\r?\n([\s\S]*?)```/);
+  // Fallback: unfenced TOPIC_SCORES [...] (AI sometimes omits backticks)
+  const unfencedMatch = text.match(/TOPIC_SCORES\s*(\[[\s\S]*?\])\s*$/m);
+  const jsonStr = fencedMatch?.[1] ?? unfencedMatch?.[1];
+  if (!jsonStr) return [];
   try {
-    const parsed = JSON.parse(match[1]);
+    const parsed = JSON.parse(jsonStr);
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (item: unknown): item is TopicScore =>
@@ -254,7 +292,12 @@ export function parseTopicScores(text: string): TopicScore[] {
  * Remove the TOPIC_SCORES block from text so it isn't shown to the user
  */
 export function stripScoresBlock(text: string): string {
-  return text.replace(/\n*```TOPIC_SCORES\n[\s\S]*?```\n*/g, "").trimEnd();
+  return text
+    // Fenced: ```TOPIC_SCORES ... ```
+    .replace(/\n*```\s*TOPIC_SCORES\s*\r?\n[\s\S]*?```\n*/g, "")
+    // Unfenced: TOPIC_SCORES [...] at end of text
+    .replace(/\n*TOPIC_SCORES\s*\[[\s\S]*\]\s*$/g, "")
+    .trimEnd();
 }
 
 // =============================================
