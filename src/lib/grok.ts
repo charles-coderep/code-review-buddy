@@ -27,6 +27,7 @@ export interface GrokRequest {
     location?: { line: number; column: number };
     source?: "babel" | "eslint" | "dataflow";
     details?: string;
+    isPositive?: boolean;
   }>;
   userContext: UserContext;
 }
@@ -128,9 +129,14 @@ After your coaching feedback, you MUST include a TOPIC_SCORES block with your as
 \`\`\`TOPIC_SCORES
 [
   { "slug": "array-filter", "score": 0.0, "reason": "callback has no return statement" },
-  { "slug": "let-const-usage", "score": 1.0, "reason": "correctly using const for array" }
+  { "slug": "let-const-usage", "score": 1.0, "reason": "correctly using const for array" },
+  { "slug": "eslint-array-callback-return", "score": 0.0, "reason": "map callback missing return in else branch" },
+  { "slug": "eslint-no-else-return", "score": 0.6, "reason": "inferred correct — trivial avoidance" },
+  { "slug": "shallow-copy-nested-mutation", "score": 0.0, "reason": "spread copy has nested mutation affecting original" }
 ]
 \`\`\`
+
+You MUST include entries for every slug from ALL sections (AST topics, ESLint violations, ESLint correct usage, Data Flow issues, Data Flow correct usage). Use the exact slug strings provided.
 
 SCORE GUIDE — be strict, not generous:
 - 1.0 = perfect, idiomatic usage with no issues
@@ -145,7 +151,16 @@ CRITICAL SCORING RULES:
 3. "Demonstrates awareness of a concept" is NOT correct usage. Using var and relying on hoisting to access undefined values is a 0.0, not a 0.8.
 4. Type confusion is a significant mistake (0.3 or lower). Example: declaring [] then using string keys makes .length wrong and numeric indexing fail.
 5. Code that throws a runtime error (TypeError, ReferenceError) for a topic earns 0.0 for that topic.
-6. When in doubt, score LOWER. Generous scores inflate ratings and hide real skill gaps.`;
+6. When in doubt, score LOWER. Generous scores inflate ratings and hide real skill gaps.
+7. TRACE DATA FLOW, not just syntax. For every detected topic, follow how the produced value is used downstream:
+   - object-destructuring / spread-operator: If a property is extracted via destructuring, check whether it is used later or silently discarded. If a spread merges objects but a destructured-out property is missing from the result, the destructuring CAUSED a bug — score 0.3 or lower. Example: \`const { theme, ...rest } = settings; const final = { ...defaults, ...rest };\` loses the user's theme override.
+   - array-foreach: forEach always returns undefined. If the return value is assigned to a variable (e.g., \`let x = arr.forEach(...)\`), score 0.0 — the user confused forEach with map/filter.
+   - array-map / array-filter: If the returned array is never assigned or used, score 0.3 — the user likely wanted forEach for side effects.
+   - Shallow copy via spread: If \`{...obj}\` is used to "copy" an object but nested properties are later mutated through the copy (affecting the original), score spread-operator 0.3.
+   - General principle: Correct syntax with incorrect data flow = incorrect usage. Always check what happens to the VALUE produced by a pattern, not just whether the pattern appears.
+8. EVALUATE INTERACTIONS BETWEEN TOPICS. A single bug can affect multiple topic scores. If destructuring removes a key that a later spread needed, BOTH object-destructuring AND spread-operator should score low. Do not score topics in isolation — trace the full chain.
+9. INFERRED POSITIVE DETECTIONS. When scoring topics marked as "Correct usage inferred", consider the complexity and meaningfulness of the pattern avoided. Score trivial avoidances conservatively (0.5-0.7) — for example, not using the Function constructor or not creating useless returns requires no real skill demonstration. Score complex pattern avoidances higher (0.8-0.9) — for example, correctly avoiding mutation during iteration, not awaiting inside loops, or properly handling race conditions with shared async state shows genuine understanding. Never score inferred positives at 1.0 — that is reserved for directly observed idiomatic usage.
+10. TRIVIAL CODE USAGE. Evaluate whether a topic was exercised meaningfully or just appeared minimally. A single \`const myName = 'Peter'\` does not demonstrate mastery of let-const-usage — score 0.4-0.6. A file that consistently uses const/let across multiple declarations with appropriate mutability choices (const for values that don't change, let only when reassigned) demonstrates real understanding — score 0.8-1.0. Apply this principle to all topics: one trivial use of a pattern is weak evidence, repeated and purposeful use is strong evidence. The more complex and deliberate the usage, the higher the score.`;
 
   return `${basePrompt}
 
@@ -194,8 +209,10 @@ export function buildUserPrompt(request: GrokRequest): string {
   const { code, language, issues, positiveFindings, detectedTopics, userContext } = request;
 
   const astTopics = detectedTopics.filter((t) => t.source !== "eslint" && t.source !== "dataflow");
-  const eslintTopics = detectedTopics.filter((t) => t.source === "eslint");
-  const dataflowTopics = detectedTopics.filter((t) => t.source === "dataflow");
+  const eslintViolations = detectedTopics.filter((t) => t.source === "eslint" && !t.isPositive);
+  const eslintPositives = detectedTopics.filter((t) => t.source === "eslint" && t.isPositive);
+  const dataflowViolations = detectedTopics.filter((t) => t.source === "dataflow" && !t.isPositive);
+  const dataflowPositives = detectedTopics.filter((t) => t.source === "dataflow" && t.isPositive);
 
   let prompt = `## Code to Review (${language}${userContext.isReact ? "/React" : ""})
 
@@ -206,14 +223,22 @@ ${code.slice(0, API_CONFIG.MAX_CODE_LENGTH)}
 ## Detected Topics (AST)
 The following topics were found in the code by Babel AST analysis. Evaluate each for correctness:
 ${astTopics.map((t) => `- ${t.slug}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
-${eslintTopics.length > 0 ? `
+${eslintViolations.length > 0 ? `
 ## ESLint Violations
 The following issues were flagged by ESLint static analysis:
-${eslintTopics.map((t) => `- ${t.slug}: ${t.details || "violation detected"}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
-` : ""}${dataflowTopics.length > 0 ? `
+${eslintViolations.map((t) => `- ${t.slug}: ${t.details || "violation detected"}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
+` : ""}${eslintPositives.length > 0 ? `
+## ESLint Correct Usage (Inferred)
+The following ESLint patterns were used correctly (prerequisite patterns present, no violations fired):
+${eslintPositives.map((t) => `- ${t.slug}: ${t.details || "correct usage"}`).join("\n")}
+` : ""}${dataflowViolations.length > 0 ? `
 ## Data Flow Issues
 The following semantic issues were detected by data flow analysis:
-${dataflowTopics.map((t) => `- ${t.slug}: ${t.details || "issue detected"}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
+${dataflowViolations.map((t) => `- ${t.slug}: ${t.details || "issue detected"}${t.location ? ` (line ${t.location.line})` : ""}`).join("\n")}
+` : ""}${dataflowPositives.length > 0 ? `
+## Data Flow Correct Usage (Inferred)
+The following data flow patterns were handled correctly (prerequisite patterns present, no issues detected):
+${dataflowPositives.map((t) => `- ${t.slug}: ${t.details || "correct usage"}`).join("\n")}
 ` : ""}
 ## AST Analysis Context
 
@@ -241,6 +266,9 @@ ${positiveFindings.length > 0 ? positiveFindings.map((p) => `- **${p.topicSlug}*
     prompt += `\n${prereqGuidance}`;
   }
 
+  // Build explicit list of ALL slugs that need scoring
+  const allSlugs = detectedTopics.map((t) => t.slug);
+
   prompt += `
 ## Your Task
 Provide pedagogical feedback on this code. Remember:
@@ -249,7 +277,10 @@ Provide pedagogical feedback on this code. Remember:
 3. Ask guiding questions rather than giving answers
 4. Acknowledge what they did well
 5. Be encouraging but honest
-6. After your coaching text, include the TOPIC_SCORES block scoring EVERY detected topic listed above
+6. After your coaching text, include the TOPIC_SCORES block scoring EVERY topic from ALL sections above (AST, ESLint, Data Flow — both violations and correct usage). You MUST score all ${allSlugs.length} topics.
+
+COMPLETE LIST OF SLUGS TO SCORE (do not skip any):
+${allSlugs.map((s) => `- ${s}`).join("\n")}
 
 Format your response in markdown with clear sections.`;
 
@@ -261,7 +292,55 @@ Format your response in markdown with clear sections.`;
 // =============================================
 
 /**
- * Extract TOPIC_SCORES JSON block from AI response text
+ * Validate and filter parsed score entries
+ */
+function filterValidScores(parsed: unknown[]): TopicScore[] {
+  return parsed.filter(
+    (item: unknown): item is TopicScore =>
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as TopicScore).slug === "string" &&
+      typeof (item as TopicScore).score === "number" &&
+      typeof (item as TopicScore).reason === "string" &&
+      (item as TopicScore).score >= 0 &&
+      (item as TopicScore).score <= 1
+  );
+}
+
+/**
+ * Try to parse a JSON string as a TopicScore array
+ */
+function tryParseScoresArray(jsonStr: string): TopicScore[] {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    if (!Array.isArray(parsed)) return [];
+    return filterValidScores(parsed);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Attempt to repair truncated TOPIC_SCORES JSON (response cut off mid-array).
+ * Finds the last complete JSON object entry and closes the array.
+ */
+function repairTruncatedScoresJson(raw: string): string | null {
+  const arrayStart = raw.indexOf("[");
+  if (arrayStart === -1) return null;
+
+  const jsonStr = raw.substring(arrayStart);
+
+  // Find last complete JSON object entry (closing brace)
+  const lastBrace = jsonStr.lastIndexOf("}");
+  if (lastBrace === -1) return null;
+
+  // Trim to last complete entry, remove trailing comma, close array
+  return jsonStr.substring(0, lastBrace + 1).replace(/,\s*$/, "") + "]";
+}
+
+/**
+ * Extract TOPIC_SCORES JSON block from AI response text.
+ * Handles complete blocks, and recovers partial scores from truncated responses.
  */
 export function parseTopicScores(text: string): TopicScore[] {
   // Try fenced format first: ```TOPIC_SCORES\n[...]\n```
@@ -269,23 +348,26 @@ export function parseTopicScores(text: string): TopicScore[] {
   // Fallback: unfenced TOPIC_SCORES [...] (AI sometimes omits backticks)
   const unfencedMatch = text.match(/TOPIC_SCORES\s*(\[[\s\S]*?\])\s*$/m);
   const jsonStr = fencedMatch?.[1] ?? unfencedMatch?.[1];
-  if (!jsonStr) return [];
-  try {
-    const parsed = JSON.parse(jsonStr);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item: unknown): item is TopicScore =>
-        typeof item === "object" &&
-        item !== null &&
-        typeof (item as TopicScore).slug === "string" &&
-        typeof (item as TopicScore).score === "number" &&
-        typeof (item as TopicScore).reason === "string" &&
-        (item as TopicScore).score >= 0 &&
-        (item as TopicScore).score <= 1
-    );
-  } catch {
-    return [];
+
+  if (jsonStr) {
+    const scores = tryParseScoresArray(jsonStr);
+    if (scores.length > 0) return scores;
   }
+
+  // Try to recover from truncated response (no closing ``` or ])
+  const truncatedMatch = text.match(/(?:```\s*TOPIC_SCORES|TOPIC_SCORES)\s*\r?\n?([\s\S]+)$/);
+  if (truncatedMatch?.[1]) {
+    const repaired = repairTruncatedScoresJson(truncatedMatch[1]);
+    if (repaired) {
+      const scores = tryParseScoresArray(repaired);
+      if (scores.length > 0) {
+        console.warn(`Recovered ${scores.length} topic scores from truncated AI response`);
+        return scores;
+      }
+    }
+  }
+
+  return [];
 }
 
 /**
@@ -297,6 +379,8 @@ export function stripScoresBlock(text: string): string {
     .replace(/\n*```\s*TOPIC_SCORES\s*\r?\n[\s\S]*?```\n*/g, "")
     // Unfenced: TOPIC_SCORES [...] at end of text
     .replace(/\n*TOPIC_SCORES\s*\[[\s\S]*\]\s*$/g, "")
+    // Truncated: TOPIC_SCORES block started but response cut off (no closing ``` or ])
+    .replace(/\n*(?:```\s*TOPIC_SCORES|TOPIC_SCORES)\s*\r?\n?[\s\S]*$/g, "")
     .trimEnd();
 }
 

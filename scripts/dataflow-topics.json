@@ -130,5 +130,27 @@
     "criticality": "high",
     "prerequisites": ["number-parsing"],
     "relatedTopics": ["implicit-type-coercion", "typeof-operator", "number-checking"]
+  },
+  {
+    "slug": "shallow-copy-nested-mutation",
+    "name": "Shallow Copy Nested Mutation",
+    "description": "Detects when {...obj}, Object.assign({}, obj), or [...arr] creates a shallow copy and then nested properties are mutated through the copy, silently affecting the original. Spread and Object.assign only copy the top-level — nested objects and arrays are still shared references.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["spread-operator"],
+    "relatedTopics": ["object-reference-sharing", "object-assign-freeze", "state-immutability"]
+  },
+  {
+    "slug": "array-self-mutation-in-iteration",
+    "name": "Array Self-Mutation in Iteration",
+    "description": "Detects when an array is mutated (push, pop, splice, sort, etc.) inside its own iteration callback (map, forEach, filter, etc.). Modifying the source array during iteration leads to skipped elements, extra iterations, or unpredictable output.",
+    "layer": "FUNDAMENTALS",
+    "category": "Data Flow",
+    "framework": "shared",
+    "criticality": "high",
+    "prerequisites": ["array-map", "array-foreach"],
+    "relatedTopics": ["array-push-pop", "pure-functions", "callback-functions"]
   }
 ]

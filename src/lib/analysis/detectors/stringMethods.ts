@@ -6,6 +6,7 @@
 
 import type { File } from "@babel/types";
 import { traverse, getNodeLocation, isNodeType } from "../parser";
+import { buildTypeMap } from "../typeInference";
 
 interface Detection {
   topicSlug: string;
@@ -202,6 +203,7 @@ function detectStringTransform(ast: File): Detection[] {
 function detectStringSliceSubstring(ast: File): Detection[] {
   const detections: Detection[] = [];
   let found = false;
+  const typeMap = buildTypeMap(ast);
 
   traverse(ast, (node) => {
     if (found) return;
@@ -210,6 +212,16 @@ function detectStringSliceSubstring(ast: File): Detection[] {
 
     const name = node.callee.property?.name;
     if (name === "slice" || name === "substring" || name === "substr") {
+      // Skip if called on a known array variable
+      const obj = node.callee.object as { type?: string; name?: string } | undefined;
+      if (obj?.type === "Identifier" && obj.name && typeMap.get(obj.name) === "array") {
+        return;
+      }
+      // Skip if called on an array literal
+      if (obj?.type === "ArrayExpression") {
+        return;
+      }
+
       found = true;
       detections.push({
         topicSlug: "string-slice-substring",

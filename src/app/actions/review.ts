@@ -153,6 +153,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
         location: detection?.location,
         source: detection?.source,
         details: detection?.details,
+        isPositive: detection ? detection.isPositive && !detection.isNegative : undefined,
       };
     });
 

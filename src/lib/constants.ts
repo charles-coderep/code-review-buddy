@@ -238,7 +238,7 @@ export const MISCONCEPTION_PATTERNS = [
 export const API_CONFIG = {
   GROK_MODEL: "grok-4-latest",
   MAX_CODE_LENGTH: 50000,
-  MAX_FEEDBACK_TOKENS: 2000,
+  MAX_FEEDBACK_TOKENS: 4096,
 } as const;
 
 // =============================================

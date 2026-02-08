@@ -30,6 +30,8 @@ export function analyzeDataFlow(ast: File, isReact: boolean): Detection[] {
   detections.push(...detectArrayAsObject(ast, typeMap));
   detections.push(...detectLoopBoundsOffByOne(ast, typeMap));
   detections.push(...detectStringArithmeticCoercion(ast, typeMap));
+  detections.push(...detectShallowCopyNestedMutation(ast, typeMap));
+  detections.push(...detectArraySelfMutationInIteration(ast));
 
   // React-only detectors
   if (isReact) {
@@ -1017,6 +1019,402 @@ function detectStringArithmeticCoercion(
       location: loc ?? undefined,
       details: `Arithmetic operator '${bin.operator}' used with string ${stringOperand} — JavaScript silently coerces strings to numbers, producing NaN for non-numeric strings. Use Number() or parseInt() for explicit conversion.`,
     });
+  });
+
+  return detections;
+}
+
+// =============================================
+// 13. shallow-copy-nested-mutation
+// Detects when {...obj} or Object.assign({}, obj) creates a shallow copy
+// and then nested properties are mutated through the copy, affecting the original.
+// Pattern: const copy = {...original}; copy.nested.prop = val;
+// =============================================
+
+function detectShallowCopyNestedMutation(
+  ast: File,
+  typeMap: Map<string, InferredType>
+): Detection[] {
+  const detections: Detection[] = [];
+
+  // Pass 1: Track shallow copies — map from copy variable name to original variable name
+  // Covers: const copy = {...obj}, const copy = Object.assign({}, obj)
+  const shallowCopies = new Map<string, { original: string; line: number }>();
+
+  traverse(ast, (node) => {
+    if (!isNodeType<{
+      id?: { type?: string; name?: string };
+      init?: Record<string, unknown>;
+      loc?: { start: { line: number; column: number } };
+    }>(node, "VariableDeclarator")) return;
+
+    const decl = node as {
+      id?: { type?: string; name?: string };
+      init?: Record<string, unknown>;
+      loc?: { start: { line: number; column: number } };
+    };
+
+    if (!decl.id?.name || !decl.init) return;
+    const copyName = decl.id.name;
+
+    // Case 1: const copy = { ...original } or { ...original, extra: val }
+    if (decl.init.type === "ObjectExpression") {
+      const properties = decl.init.properties as Array<{
+        type?: string;
+        argument?: { type?: string; name?: string };
+      }> | undefined;
+
+      if (properties) {
+        for (const prop of properties) {
+          if (
+            prop.type === "SpreadElement" &&
+            prop.argument?.type === "Identifier" &&
+            prop.argument.name
+          ) {
+            const origType = typeMap.get(prop.argument.name);
+            if (origType === "object" || !origType) {
+              shallowCopies.set(copyName, {
+                original: prop.argument.name,
+                line: decl.loc?.start.line ?? 0,
+              });
+            }
+            break; // only track the first spread source
+          }
+        }
+      }
+    }
+
+    // Case 2: const copy = Object.assign({}, original)
+    if (decl.init.type === "CallExpression") {
+      const callee = decl.init.callee as {
+        type?: string;
+        object?: { type?: string; name?: string };
+        property?: { type?: string; name?: string };
+      } | undefined;
+
+      if (
+        callee?.type === "MemberExpression" &&
+        callee.object?.name === "Object" &&
+        callee.property?.name === "assign"
+      ) {
+        const args = decl.init.arguments as Array<{
+          type?: string;
+          name?: string;
+          properties?: unknown[];
+        }> | undefined;
+
+        // Object.assign({}, original) — first arg is empty object, second is the source
+        if (
+          args &&
+          args.length >= 2 &&
+          args[0]?.type === "ObjectExpression" &&
+          (!args[0].properties || (args[0].properties as unknown[]).length === 0) &&
+          args[1]?.type === "Identifier" &&
+          args[1].name
+        ) {
+          shallowCopies.set(copyName, {
+            original: args[1].name,
+            line: decl.loc?.start.line ?? 0,
+          });
+        }
+      }
+    }
+
+    // Case 3: const copy = [...original] (array shallow copy)
+    if (decl.init.type === "ArrayExpression") {
+      const elements = decl.init.elements as Array<{
+        type?: string;
+        argument?: { type?: string; name?: string };
+      }> | undefined;
+
+      if (
+        elements &&
+        elements.length === 1 &&
+        elements[0]?.type === "SpreadElement" &&
+        elements[0].argument?.type === "Identifier" &&
+        elements[0].argument.name
+      ) {
+        const origType = typeMap.get(elements[0].argument.name);
+        if (origType === "array" || !origType) {
+          shallowCopies.set(copyName, {
+            original: elements[0].argument.name,
+            line: decl.loc?.start.line ?? 0,
+          });
+        }
+      }
+    }
+  });
+
+  if (shallowCopies.size === 0) return detections;
+
+  // Pass 2: Find nested mutations through shallow copies
+  // Patterns: copy.nested.prop = val (AssignmentExpression, depth >= 2)
+  //           copy.nested.push(...) (CallExpression on mutating method, depth >= 2)
+  const flagged = new Set<string>();
+  const mutatingMethods = new Set([
+    "push", "pop", "shift", "unshift", "splice",
+    "sort", "reverse", "fill",
+  ]);
+
+  // Helper: resolve the root object name and depth from a MemberExpression chain
+  function resolveMemberChain(node: Record<string, unknown>): { root: string; depth: number; path: string } | null {
+    let depth = 0;
+    let current = node;
+    const parts: string[] = [];
+
+    while (current.type === "MemberExpression") {
+      depth++;
+      const prop = current.property as { name?: string; value?: string } | undefined;
+      if (prop?.name) parts.unshift(prop.name);
+      else if (prop?.value) parts.unshift(String(prop.value));
+      else parts.unshift("?");
+      current = current.object as Record<string, unknown>;
+      if (!current) return null;
+    }
+
+    if (current.type === "Identifier" && typeof current.name === "string") {
+      return { root: current.name, depth, path: parts.join(".") };
+    }
+    return null;
+  }
+
+  // Check assignments: copy.nested.prop = val
+  traverse(ast, (node) => {
+    if (!isNodeType<{
+      operator?: string;
+      left?: Record<string, unknown>;
+      loc?: { start: { line: number; column: number } };
+    }>(node, "AssignmentExpression")) return;
+
+    const assign = node as {
+      left?: Record<string, unknown>;
+      loc?: { start: { line: number; column: number } };
+    };
+
+    if (assign.left?.type !== "MemberExpression") return;
+
+    const chain = resolveMemberChain(assign.left);
+    if (!chain || chain.depth < 2) return;
+
+    const copyInfo = shallowCopies.get(chain.root);
+    if (!copyInfo || flagged.has(chain.root)) return;
+
+    flagged.add(chain.root);
+    const loc = assign.loc?.start;
+
+    detections.push({
+      topicSlug: "shallow-copy-nested-mutation",
+      detected: true,
+      isPositive: false,
+      isNegative: true,
+      isIdiomatic: false,
+      location: loc ? { line: loc.line, column: loc.column } : undefined,
+      details: `Shallow copy '${chain.root}' (from '${copyInfo.original}') has nested property '${chain.path}' mutated — this modifies the original '${copyInfo.original}' too. Spread/Object.assign only copies the top level. Use structuredClone() or deep-clone nested objects.`,
+    });
+  });
+
+  // Check method calls: copy.nested.push(...), copy.nested.sort()
+  traverse(ast, (node) => {
+    if (!isNodeType<{
+      callee?: Record<string, unknown>;
+      loc?: { start: { line: number; column: number } };
+    }>(node, "CallExpression")) return;
+
+    const call = node as {
+      callee?: Record<string, unknown>;
+      loc?: { start: { line: number; column: number } };
+    };
+
+    if (call.callee?.type !== "MemberExpression") return;
+
+    const chain = resolveMemberChain(call.callee);
+    if (!chain || chain.depth < 2) return;
+
+    // Check if the leaf method is a mutating method
+    const parts = chain.path.split(".");
+    const methodName = parts[parts.length - 1];
+    if (!mutatingMethods.has(methodName)) return;
+
+    const copyInfo = shallowCopies.get(chain.root);
+    if (!copyInfo || flagged.has(chain.root)) return;
+
+    flagged.add(chain.root);
+    const loc = call.loc?.start;
+
+    detections.push({
+      topicSlug: "shallow-copy-nested-mutation",
+      detected: true,
+      isPositive: false,
+      isNegative: true,
+      isIdiomatic: false,
+      location: loc ? { line: loc.line, column: loc.column } : undefined,
+      details: `Shallow copy '${chain.root}' (from '${copyInfo.original}') calls '${chain.path}()' — this mutates a nested reference shared with the original '${copyInfo.original}'. Spread only copies the top level.`,
+    });
+  });
+
+  return detections;
+}
+
+// =============================================
+// 14. array-self-mutation-in-iteration
+// Detects when an array is mutated (push, pop, splice, etc.)
+// inside its own iteration callback (map, forEach, filter, etc.).
+// Mutating the source array during iteration leads to unpredictable
+// results — skipped elements, infinite loops, or wrong output.
+// =============================================
+
+function detectArraySelfMutationInIteration(ast: File): Detection[] {
+  const detections: Detection[] = [];
+  const iterationMethods = new Set([
+    "map", "forEach", "filter", "find", "findIndex",
+    "some", "every", "flatMap", "reduce",
+  ]);
+  const mutatingMethods = new Set([
+    "push", "pop", "shift", "unshift", "splice",
+    "sort", "reverse", "fill",
+  ]);
+  const flagged = new Set<string>();
+
+  traverse(ast, (node) => {
+    if (!isNodeType<{
+      callee?: {
+        type?: string;
+        object?: { type?: string; name?: string };
+        property?: { type?: string; name?: string };
+      };
+      arguments?: unknown[];
+      loc?: { start: { line: number; column: number } };
+    }>(node, "CallExpression")) return;
+
+    const call = node as {
+      callee?: {
+        type?: string;
+        object?: { type?: string; name?: string };
+        property?: { type?: string; name?: string };
+      };
+      arguments?: unknown[];
+      loc?: { start: { line: number; column: number } };
+    };
+
+    if (call.callee?.type !== "MemberExpression") return;
+
+    const iterMethod = call.callee.property?.name;
+    const arrayName = call.callee.object?.name;
+    if (!iterMethod || !arrayName || !iterationMethods.has(iterMethod)) return;
+    if (flagged.has(arrayName)) return;
+
+    // Get the callback argument
+    const callback = call.arguments?.[0] as Record<string, unknown> | undefined;
+    if (!callback) return;
+    if (
+      callback.type !== "ArrowFunctionExpression" &&
+      callback.type !== "FunctionExpression"
+    ) return;
+
+    // Walk the callback body looking for mutations on the same array
+    const mutations: Array<{ method: string; line: number; column: number }> = [];
+
+    function findSelfMutations(n: unknown): void {
+      if (!n || typeof n !== "object" || mutations.length > 0) return;
+      const node = n as Record<string, unknown>;
+
+      // Check for arr.push(), arr.splice(), etc.
+      if (node.type === "CallExpression") {
+        const callee = node.callee as {
+          type?: string;
+          object?: { type?: string; name?: string };
+          property?: { type?: string; name?: string };
+        } | undefined;
+
+        if (
+          callee?.type === "MemberExpression" &&
+          callee.object?.type === "Identifier" &&
+          callee.object.name === arrayName &&
+          callee.property?.name &&
+          mutatingMethods.has(callee.property.name)
+        ) {
+          const loc = (node as { loc?: { start: { line: number; column: number } } }).loc?.start;
+          mutations.push({
+            method: callee.property.name,
+            line: loc?.line ?? 0,
+            column: loc?.column ?? 0,
+          });
+          return;
+        }
+      }
+
+      // Check for arr[i] = val (direct index assignment on the same array)
+      if (node.type === "AssignmentExpression") {
+        const left = node.left as {
+          type?: string;
+          computed?: boolean;
+          object?: { type?: string; name?: string };
+        } | undefined;
+
+        if (
+          left?.type === "MemberExpression" &&
+          left.computed &&
+          left.object?.type === "Identifier" &&
+          left.object.name === arrayName
+        ) {
+          const loc = (node as { loc?: { start: { line: number; column: number } } }).loc?.start;
+          mutations.push({
+            method: "index assignment",
+            line: loc?.line ?? 0,
+            column: loc?.column ?? 0,
+          });
+          return;
+        }
+      }
+
+      // Don't recurse into nested function bodies (they may execute later, not during iteration)
+      if (
+        node.type === "FunctionDeclaration" ||
+        node.type === "FunctionExpression" ||
+        node.type === "ArrowFunctionExpression"
+      ) {
+        return;
+      }
+
+      for (const key of Object.keys(node)) {
+        if (key === "loc" || key === "start" || key === "end") continue;
+        const value = node[key];
+        if (Array.isArray(value)) {
+          value.forEach(findSelfMutations);
+        } else if (value && typeof value === "object") {
+          findSelfMutations(value);
+        }
+      }
+    }
+
+    // Walk the callback body (not the callback node itself, to avoid skipping due to the function type check)
+    const body = callback.body as Record<string, unknown> | undefined;
+    if (body?.type === "BlockStatement") {
+      const statements = body.body as unknown[] | undefined;
+      if (statements) {
+        for (const stmt of statements) {
+          findSelfMutations(stmt);
+          if (mutations.length > 0) break;
+        }
+      }
+    } else if (body) {
+      // Expression body (arrow with implicit return) — walk the expression
+      findSelfMutations(body);
+    }
+
+    if (mutations.length > 0) {
+      const m = mutations[0];
+      flagged.add(arrayName);
+      detections.push({
+        topicSlug: "array-self-mutation-in-iteration",
+        detected: true,
+        isPositive: false,
+        isNegative: true,
+        isIdiomatic: false,
+        location: { line: m.line, column: m.column },
+        details: `Array '${arrayName}' is mutated via .${m.method}() inside its own .${iterMethod}() callback — this changes the array while iterating over it, leading to unpredictable results. Collect changes separately and apply after iteration.`,
+      });
+    }
   });
 
   return detections;

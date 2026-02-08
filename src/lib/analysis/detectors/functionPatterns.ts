@@ -467,27 +467,58 @@ export function detectClosureInLoops(ast: File): FunctionDetection[] {
   const detections: FunctionDetection[] = [];
   const loopTypes = ["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"];
 
-  const visit = (node: unknown, insideLoop: boolean): void => {
+  /** Check whether a loop's iterator variable uses `var` (unsafe for closures) */
+  function loopUsesVar(loop: Record<string, unknown>): boolean {
+    const type = loop.type as string;
+    if (type === "ForStatement") {
+      const init = loop.init as { type?: string; kind?: string } | undefined;
+      if (!init) return false;
+      return init.type === "VariableDeclaration" && init.kind === "var";
+    }
+    if (type === "ForInStatement" || type === "ForOfStatement") {
+      const left = loop.left as { type?: string; kind?: string } | undefined;
+      if (!left) return false;
+      return left.type === "VariableDeclaration" && left.kind === "var";
+    }
+    // while / do-while — no iterator declaration, closures inside are suspicious
+    return true;
+  }
+
+  const visit = (node: unknown, enclosingLoop: Record<string, unknown> | null): void => {
     if (!node || typeof node !== "object") return;
     const n = node as Record<string, unknown>;
 
     const isLoop = loopTypes.includes(n.type as string);
-    const nowInsideLoop = insideLoop || isLoop;
+    const currentLoop = isLoop ? n : enclosingLoop;
 
     // Function inside a loop
     if (
-      nowInsideLoop &&
+      currentLoop &&
       (n.type === "FunctionExpression" || n.type === "ArrowFunctionExpression")
     ) {
-      detections.push({
-        topicSlug: "closure-in-loops",
-        detected: true,
-        isPositive: false,
-        isNegative: true,
-        isIdiomatic: false,
-        location: getNodeLocation(node) ?? undefined,
-        details: "Function created inside loop - may capture loop variable by reference",
-      });
+      if (loopUsesVar(currentLoop)) {
+        // var loop — closure captures shared mutable binding
+        detections.push({
+          topicSlug: "closure-in-loops",
+          detected: true,
+          isPositive: false,
+          isNegative: true,
+          isIdiomatic: false,
+          location: getNodeLocation(node) ?? undefined,
+          details: "Function created inside a var loop — closure captures shared mutable variable",
+        });
+      } else {
+        // let/const loop — each iteration gets its own binding, safe
+        detections.push({
+          topicSlug: "closure-in-loops",
+          detected: true,
+          isPositive: true,
+          isNegative: false,
+          isIdiomatic: true,
+          location: getNodeLocation(node) ?? undefined,
+          details: "Closure in let/const loop — each iteration gets a fresh binding (safe)",
+        });
+      }
       return; // Don't recurse into the function body
     }
 
@@ -495,14 +526,14 @@ export function detectClosureInLoops(ast: File): FunctionDetection[] {
       if (key === "loc" || key === "start" || key === "end") continue;
       const value = n[key];
       if (Array.isArray(value)) {
-        value.forEach((child) => visit(child, nowInsideLoop));
+        value.forEach((child) => visit(child, currentLoop));
       } else if (value && typeof value === "object") {
-        visit(value, nowInsideLoop);
+        visit(value, currentLoop);
       }
     }
   };
 
-  visit(ast.program, false);
+  visit(ast.program, null);
 
   // Report at most one
   if (detections.length > 1) {

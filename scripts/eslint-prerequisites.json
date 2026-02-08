@@ -1,0 +1,326 @@
+{
+  "eslint-array-callback-return": {
+    "prerequisites": ["array-map", "array-filter", "array-reduce", "array-find", "array-some-every"],
+    "minInstances": 1,
+    "description": "Used array methods that require callback returns"
+  },
+  "eslint-no-loop-func": {
+    "prerequisites": ["for-loop-basics", "while-loops", "closure-basics", "closure-in-loops"],
+    "minInstances": 2,
+    "description": "Created functions inside loops"
+  },
+  "eslint-consistent-return": {
+    "prerequisites": ["arrow-functions", "guard-clauses"],
+    "minInstances": 2,
+    "description": "Wrote functions with multiple code paths"
+  },
+  "eslint-no-param-reassign": {
+    "prerequisites": ["arrow-functions", "default-parameters", "rest-parameters"],
+    "minInstances": 2,
+    "description": "Wrote functions with parameters"
+  },
+  "eslint-no-template-curly-in-string": {
+    "prerequisites": ["template-literals"],
+    "minInstances": 1,
+    "description": "Used template literals correctly"
+  },
+  "eslint-no-else-return": {
+    "prerequisites": ["guard-clauses", "arrow-functions"],
+    "minInstances": 2,
+    "description": "Used early returns without unnecessary else"
+  },
+  "eslint-no-await-in-loop": {
+    "prerequisites": ["async-await-basics", "for-loop-basics"],
+    "minInstances": 2,
+    "description": "Combined async/await with loops correctly"
+  },
+  "eslint-require-await": {
+    "prerequisites": ["async-await-basics"],
+    "minInstances": 1,
+    "description": "Declared async functions that use await"
+  },
+  "eslint-require-atomic-updates": {
+    "prerequisites": ["async-await-basics"],
+    "minInstances": 2,
+    "description": "Used async operations with shared state safely"
+  },
+  "eslint-prefer-promise-reject-errors": {
+    "prerequisites": ["promise-basics", "error-throwing"],
+    "minInstances": 2,
+    "description": "Rejected promises with Error objects"
+  },
+  "eslint-no-throw-literal": {
+    "prerequisites": ["error-throwing", "try-catch"],
+    "minInstances": 1,
+    "description": "Threw Error objects, not literals"
+  },
+  "eslint-no-promise-executor-return": {
+    "prerequisites": ["promise-basics"],
+    "minInstances": 1,
+    "description": "Used Promise constructors correctly"
+  },
+  "eslint-no-useless-constructor": {
+    "prerequisites": ["class-declaration", "class-methods"],
+    "minInstances": 1,
+    "description": "Defined meaningful class constructors"
+  },
+  "eslint-no-constructor-return": {
+    "prerequisites": ["class-declaration", "class-methods"],
+    "minInstances": 1,
+    "description": "Used class constructors without returning values"
+  },
+  "eslint-class-methods-use-this": {
+    "prerequisites": ["class-declaration", "class-methods", "this-binding"],
+    "minInstances": 2,
+    "description": "Defined class methods that use this"
+  },
+  "eslint-no-duplicate-imports": {
+    "prerequisites": ["import-export-named", "import-export-default"],
+    "minInstances": 2,
+    "description": "Used ES module imports without duplication"
+  },
+  "eslint-default-case": {
+    "prerequisites": ["switch-case"],
+    "minInstances": 1,
+    "description": "Used switch statements with default case"
+  },
+  "eslint-default-case-last": {
+    "prerequisites": ["switch-case"],
+    "minInstances": 1,
+    "description": "Placed default case last in switch"
+  },
+  "eslint-default-param-last": {
+    "prerequisites": ["default-parameters"],
+    "minInstances": 1,
+    "description": "Placed default parameters last"
+  },
+  "eslint-no-unneeded-ternary": {
+    "prerequisites": ["ternary-operator"],
+    "minInstances": 1,
+    "description": "Used ternary operators without redundancy"
+  },
+  "eslint-complexity": {
+    "prerequisites": ["guard-clauses", "switch-case", "for-loop-basics"],
+    "minInstances": 3,
+    "description": "Kept function complexity within bounds"
+  },
+  "eslint-no-return-assign": {
+    "prerequisites": ["arrow-functions"],
+    "minInstances": 2,
+    "description": "Used return statements without assignments"
+  },
+  "eslint-arrow-body-style": {
+    "prerequisites": ["arrow-functions"],
+    "minInstances": 2,
+    "description": "Used arrow function body style correctly"
+  },
+  "eslint-block-scoped-var": {
+    "prerequisites": ["block-vs-function-scope", "for-loop-basics"],
+    "minInstances": 2,
+    "description": "Used var with proper block scoping"
+  },
+  "eslint-radix": {
+    "prerequisites": ["number-parsing"],
+    "minInstances": 1,
+    "description": "Used parseInt with radix parameter"
+  },
+  "eslint-no-extra-bind": {
+    "prerequisites": ["this-binding", "bind-call-apply"],
+    "minInstances": 1,
+    "description": "Used .bind() only when necessary"
+  },
+  "eslint-no-implied-eval": {
+    "prerequisites": ["setTimeout-usage", "setInterval-usage"],
+    "minInstances": 1,
+    "description": "Used setTimeout/setInterval with function references"
+  },
+  "eslint-no-unmodified-loop-condition": {
+    "prerequisites": ["while-loops", "for-loop-basics"],
+    "minInstances": 1,
+    "description": "Modified loop conditions correctly"
+  },
+  "eslint-no-unused-expressions": {
+    "prerequisites": ["arrow-functions", "short-circuit-evaluation"],
+    "minInstances": 2,
+    "description": "Used expressions with side effects or assignments"
+  },
+  "eslint-no-useless-return": {
+    "prerequisites": ["arrow-functions", "guard-clauses"],
+    "minInstances": 2,
+    "description": "Used return statements meaningfully"
+  },
+  "eslint-no-useless-concat": {
+    "prerequisites": ["template-literals"],
+    "minInstances": 1,
+    "description": "Concatenated strings without unnecessary joins"
+  },
+  "eslint-no-new-func": {
+    "prerequisites": ["arrow-functions", "higher-order-functions"],
+    "minInstances": 1,
+    "description": "Created functions without Function constructor"
+  },
+  "eslint-no-new-wrappers": {
+    "prerequisites": ["typeof-operator", "number-parsing"],
+    "minInstances": 1,
+    "description": "Used primitives without wrapper constructors"
+  },
+  "eslint-prefer-named-capture-group": {
+    "prerequisites": ["regex-literal", "regex-groups"],
+    "minInstances": 1,
+    "description": "Used named capture groups in regex"
+  },
+  "eslint-prefer-regex-literals": {
+    "prerequisites": ["regex-literal"],
+    "minInstances": 1,
+    "description": "Used regex literals instead of RegExp constructor"
+  },
+  "eslint-no-useless-escape": {
+    "prerequisites": ["regex-literal", "template-literals"],
+    "minInstances": 1,
+    "description": "Used escape sequences correctly"
+  },
+  "eslint-prefer-object-spread": {
+    "prerequisites": ["spread-operator", "object-assign-freeze"],
+    "minInstances": 1,
+    "description": "Used spread instead of Object.assign"
+  },
+  "eslint-prefer-object-has-own": {
+    "prerequisites": ["property-existence-check"],
+    "minInstances": 1,
+    "description": "Used Object.hasOwn for property checks"
+  },
+  "eslint-logical-assignment-operators": {
+    "prerequisites": ["logical-assignment", "nullish-coalescing"],
+    "minInstances": 1,
+    "description": "Used logical assignment operators"
+  },
+  "eslint-grouped-accessor-pairs": {
+    "prerequisites": ["class-getters-setters"],
+    "minInstances": 1,
+    "description": "Grouped getter/setter pairs together"
+  },
+  "eslint-accessor-pairs": {
+    "prerequisites": ["class-getters-setters"],
+    "minInstances": 1,
+    "description": "Defined matching getter/setter pairs"
+  },
+  "eslint-no-lonely-if": {
+    "prerequisites": ["guard-clauses"],
+    "minInstances": 2,
+    "description": "Used else-if instead of nested lonely if"
+  },
+  "eslint-react-jsx-no-leaked-render": {
+    "prerequisites": ["jsx-conditional-rendering"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used conditional rendering without leaked falsy values"
+  },
+  "eslint-react-jsx-no-constructed-context-values": {
+    "prerequisites": ["context-provider", "usememo-basics"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Memoized context values"
+  },
+  "eslint-react-no-unstable-nested-components": {
+    "prerequisites": ["jsx-syntax", "arrow-functions"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Defined components outside render"
+  },
+  "eslint-react-no-object-type-as-default-prop": {
+    "prerequisites": ["props-basics", "default-parameters"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Avoided object defaults in component props"
+  },
+  "eslint-react-hook-use-state": {
+    "prerequisites": ["usestate-basics"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Named useState destructuring correctly"
+  },
+  "eslint-react-hooks-no-deriving-state-in-effects": {
+    "prerequisites": ["useeffect-basics", "usestate-basics"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Avoided deriving state in effects"
+  },
+  "eslint-react-hooks-set-state-in-effect": {
+    "prerequisites": ["useeffect-basics", "usestate-basics"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Used setState in effects correctly"
+  },
+  "eslint-react-self-closing-comp": {
+    "prerequisites": ["jsx-syntax"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Used self-closing JSX tags"
+  },
+  "eslint-react-jsx-boolean-value": {
+    "prerequisites": ["jsx-expressions", "props-basics"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used boolean JSX props correctly"
+  },
+  "eslint-react-jsx-fragments": {
+    "prerequisites": ["jsx-syntax"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Used JSX fragments correctly"
+  },
+  "eslint-react-jsx-no-useless-fragment": {
+    "prerequisites": ["jsx-syntax"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Avoided unnecessary JSX fragments"
+  },
+  "eslint-react-jsx-pascal-case": {
+    "prerequisites": ["jsx-syntax"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used PascalCase for JSX components"
+  },
+  "eslint-react-jsx-no-bind": {
+    "prerequisites": ["event-handlers", "jsx-expressions", "usecallback-basics"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Avoided inline function definitions in JSX props"
+  },
+  "eslint-react-prefer-stateless-function": {
+    "prerequisites": ["class-declaration", "jsx-syntax"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used function components over stateless class components"
+  },
+  "eslint-react-no-unused-state": {
+    "prerequisites": ["usestate-basics"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used all declared state"
+  },
+  "eslint-react-no-access-state-in-setstate": {
+    "prerequisites": ["usestate-basics", "usestate-functional-updates"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used functional updates for state dependent on previous state"
+  },
+  "eslint-react-function-component-definition": {
+    "prerequisites": ["jsx-syntax", "arrow-functions"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used consistent function component definition"
+  },
+  "eslint-react-jsx-curly-brace-presence": {
+    "prerequisites": ["jsx-expressions"],
+    "minInstances": 2,
+    "framework": "react",
+    "description": "Used JSX curly braces correctly"
+  },
+  "eslint-react-no-unused-prop-types": {
+    "prerequisites": ["props-basics", "props-destructuring"],
+    "minInstances": 1,
+    "framework": "react",
+    "description": "Used all declared prop types"
+  }
+}

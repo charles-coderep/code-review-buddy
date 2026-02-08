@@ -24,6 +24,10 @@ import { analyzeWithESLint } from "./eslintDetector";
 // Data flow detector
 import { analyzeDataFlow } from "./dataFlowDetector";
 
+// Positive inference prerequisites
+import eslintPrerequisites from "../../../scripts/eslint-prerequisites.json";
+import dataflowTopics from "../../../scripts/dataflow-topics.json";
+
 // New expanded detectors
 import { detectArrayMutationMethods } from "./detectors/arrayMutationMethods";
 import { detectStringMethods } from "./detectors/stringMethods";
@@ -162,6 +166,10 @@ export function analyzeCode(
   const dataFlowDetections = analyzeDataFlow(parsed.ast, parsed.isReact);
   allDetections.push(...dataFlowDetections);
 
+  // Run positive inference for ESLint and Data Flow topics
+  const inferredPositives = inferPositiveDetections(allDetections, parsed.isReact);
+  allDetections.push(...inferredPositives);
+
   // Build summary
   const positiveFindings = allDetections.filter((d) => d.isPositive && !d.isNegative);
   const issuesFound = allDetections.filter((d) => d.isNegative);
@@ -200,6 +208,116 @@ export function analyzeCode(
     issuesFound,
     positiveFindings,
   };
+}
+
+// =============================================
+// Positive Inference
+// =============================================
+
+interface PrerequisiteConfig {
+  prerequisites: string[];
+  minInstances: number;
+  framework?: "react";
+  description: string;
+}
+
+/**
+ * Infer positive detections for ESLint and Data Flow topics.
+ * If Babel detected prerequisite patterns and the corresponding rule didn't fire,
+ * this indicates correct usage of the pattern the rule checks.
+ */
+export function inferPositiveDetections(allDetections: Detection[], isReact: boolean = false): Detection[] {
+  const inferred: Detection[] = [];
+
+  // Build a map of Babel detection counts per topic slug
+  const babelDetectionCounts = new Map<string, number>();
+  for (const d of allDetections) {
+    if (d.source === "babel" && d.detected) {
+      babelDetectionCounts.set(
+        d.topicSlug,
+        (babelDetectionCounts.get(d.topicSlug) ?? 0) + 1
+      );
+    }
+  }
+
+  // Build a set of all topic slugs that already have detections
+  const existingTopicSlugs = new Set(allDetections.map((d) => d.topicSlug));
+
+  // ESLint positive inference
+  const eslintPrereqMap = eslintPrerequisites as Record<string, PrerequisiteConfig>;
+
+  for (const [topicSlug, config] of Object.entries(eslintPrereqMap)) {
+    // Skip React-specific rules when code is not React
+    if (config.framework === "react" && !isReact) continue;
+
+    // Skip if ESLint already fired a violation for this topic
+    if (existingTopicSlugs.has(topicSlug)) continue;
+
+    // Check if prerequisites are present in Babel detections
+    const metPrereqs = config.prerequisites.filter((p) => babelDetectionCounts.has(p));
+    if (metPrereqs.length === 0) continue;
+
+    // Sum instances of matching prerequisites
+    const totalInstances = metPrereqs.reduce(
+      (sum, p) => sum + (babelDetectionCounts.get(p) ?? 0),
+      0
+    );
+
+    // Require minimum threshold
+    if (totalInstances < config.minInstances) continue;
+
+    inferred.push({
+      topicSlug,
+      detected: true,
+      isPositive: true,
+      isNegative: false,
+      isIdiomatic: false,
+      isTrivial: false,
+      details: `Correct usage inferred: ${config.description} (${metPrereqs.join(", ")} detected, no violations)`,
+      source: "eslint",
+    });
+  }
+
+  // Data Flow positive inference
+  const DATA_FLOW_MIN_INSTANCES = 2;
+
+  for (const topic of dataflowTopics) {
+    const topicSlug = topic.slug;
+
+    // Skip React-specific data flow topics when code is not React
+    if (topic.framework === "react-specific" && !isReact) continue;
+
+    // Skip if Data Flow already fired a violation for this topic
+    if (existingTopicSlugs.has(topicSlug)) continue;
+
+    // Skip if no prerequisites defined
+    if (!topic.prerequisites || topic.prerequisites.length === 0) continue;
+
+    // Check if prerequisites are present in Babel detections
+    const metPrereqs = topic.prerequisites.filter((p: string) => babelDetectionCounts.has(p));
+    if (metPrereqs.length === 0) continue;
+
+    // Sum instances of matching prerequisites
+    const totalInstances = metPrereqs.reduce(
+      (sum: number, p: string) => sum + (babelDetectionCounts.get(p) ?? 0),
+      0
+    );
+
+    if (totalInstances < DATA_FLOW_MIN_INSTANCES) continue;
+
+    inferred.push({
+      topicSlug,
+      detected: true,
+      isPositive: true,
+      isNegative: false,
+      isIdiomatic: false,
+      isTrivial: false,
+      details: `Correct usage inferred: used ${metPrereqs.join(", ")} without triggering ${topic.name} issue`,
+      source: "dataflow",
+    });
+  }
+
+  return inferred;
 }
 
 // =============================================
