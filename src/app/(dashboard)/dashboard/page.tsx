@@ -22,6 +22,7 @@ export default async function DashboardPage() {
   const { user, progress, stuckSummary } = result.data;
 
   return (
+    <div className="p-6 lg:p-8 max-w-6xl">
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -170,6 +171,7 @@ export default async function DashboardPage() {
           <Link href="/review">Get Coaching on Your Code</Link>
         </Button>
       </div>
+    </div>
     </div>
   );
 }

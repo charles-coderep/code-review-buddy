@@ -7,7 +7,7 @@ Grok API (grok-4-latest) connected and returning real coaching feedback.
 
 ## What's Done
 
-### Infrastructure
+### Infrastructurenpm run dev
 
 - [x] Prisma schema updated for Prisma 7 (removed `url` from datasource, removed deprecated `driverAdapters` preview feature)
 - [x] `prisma generate` — Prisma client generated
@@ -343,11 +343,13 @@ AI coaching text correctly identified code issues but TOPIC_SCORES were too gene
 ### Solution
 
 Expanded the TOPIC_SCORES instruction in `buildSystemPrompt()` (`src/lib/grok.ts`) with:
+
 - Detailed score guide with concrete examples at each level (1.0, 0.8, 0.6, 0.3, 0.0)
 - 6 critical scoring rules enforcing strict correctness-based scoring
 - Key rules: scores must match coaching criticism, runtime errors = 0.0, type confusion = 0.3, "demonstrates awareness" ≠ correct usage, when in doubt score lower
 
 ### Files Changed
+
 - [x] `src/lib/grok.ts` — Expanded `scoringInstruction` in `buildSystemPrompt()`
 
 ## COMPLETE: Detection Quality & Coaching Fixes
@@ -384,37 +386,6 @@ Expanded the TOPIC_SCORES instruction in `buildSystemPrompt()` (`src/lib/grok.ts
   - Data flow detections catching shared references and array-as-object bugs
   - AI scoring well calibrated with severity weighting
 
-## COMPLETE: Positive Inference for ESLint & Data Flow
-
-### Problem
-
-ESLint (~152 topics) and Data Flow (~14 topics) only produce negative detections. A user who writes perfect code gets zero credit for these 166 topics, creating structural bias in the Glicko-2 rating system (ratings can only decrease, never increase).
-
-### Solution
-
-Prerequisite-based positive inference. After all 3 detection passes, if Babel detected a prerequisite pattern (e.g., `array-map`) and the corresponding ESLint/Data Flow rule didn't fire (e.g., `array-callback-return`), infer correct usage and create a positive detection.
-
-### Implementation Steps
-
-- [x] **`scripts/eslint-prerequisites.json`** (CREATED) — Maps ~60 ESLint topic slugs to Babel prerequisite arrays with `minInstances` thresholds. React rules have `"framework": "react"` field. Excludes 22 BABEL_OVERLAP_MAP rules and universal error-prevention rules.
-- [x] **`src/lib/analysis/index.ts`** — Added `inferPositiveDetections(allDetections, isReact)`. Builds Babel detection count map, checks ESLint/Data Flow prerequisites, enforces thresholds, skips React rules when not React, creates positive Detection objects.
-- [x] **`src/lib/grok.ts`** — Added `isPositive` to GrokRequest detectedTopics, splits ESLint/Data Flow into "Violations" and "Correct Usage (Inferred)" sections in prompt. Added scoring rules 9 (inferred positives: trivial 0.5-0.7, complex 0.8-0.9) and 10 (trivial code: single use 0.4-0.6). Added explicit slug checklist forcing AI to score ALL topics.
-- [x] **`src/app/actions/review.ts`** — Passes `isPositive` flag when building detectedTopics for GrokRequest.
-- [x] **`src/components/review/review-results.tsx`** — Green "correct" badges alongside red "violation" badges in ESLint and Data Flow engine details sections.
-- [x] **`CLAUDE.md`** — Updated pipeline diagram, scoring pipeline, and Phase 8 documentation.
-
-### Token Truncation Fix
-
-During testing with 57 topics, the AI response was truncated mid-JSON because `MAX_FEEDBACK_TOKENS: 2000` wasn't enough for coaching text + TOPIC_SCORES block. All scores fell back to AST fallback.
-
-- [x] **`src/lib/constants.ts`** — Increased `MAX_FEEDBACK_TOKENS` from 2000 to 4096.
-- [x] **`src/lib/grok.ts`** — Added truncated JSON recovery to `parseTopicScores()`:
-  - `repairTruncatedScoresJson()` finds the last complete `}` entry, trims incomplete data, closes the array
-  - Salvages completed scores (e.g., 50 of 57) instead of losing everything
-  - Logs warning when recovery kicks in
-- [x] **`src/lib/grok.ts`** — Updated `stripScoresBlock()` to also strip truncated TOPIC_SCORES blocks from display text.
-- [x] **Build** — `npx next build` compiles clean.
-
 ## Other TODO
 
 - [ ] Phase F: Topic detail page (stretch — /topics/[slug])
@@ -431,7 +402,6 @@ During testing with 57 topics, the AI response was truncated mid-JSON because `M
 - **Auth:** NextAuth v5 beta, Credentials provider, JWT strategy
 - **Code detection:** No user language selection — engine auto-detects JS vs React via AST. Topics graded by affinity (js-pure, react-specific, shared).
 - **Engine debug:** Collapsible "Engine Details" panel in results shows raw AST detections, ESLint detections, Data Flow detections, and performance scores
-- **Analysis architecture:** Four-layer detection: Babel AST (topic presence) + ESLint (rule violations) + Data Flow (semantic patterns) + Positive Inference (prerequisite-based correct usage) + AI (correctness scoring). See CLAUDE.md "Analysis Architecture" section.
-- **Detectors:** 30 Babel detector files in `src/lib/analysis/detectors/` + ESLint detector at `src/lib/analysis/eslintDetector.ts` + Data Flow detector at `src/lib/analysis/dataFlowDetector.ts`. Type inference + alias tracking at `src/lib/analysis/typeInference.ts`. Positive inference in `src/lib/analysis/index.ts` using `scripts/eslint-prerequisites.json`. All registered in `src/lib/analysis/index.ts`.
+- **Analysis architecture:** Four-layer detection: Babel AST (topic presence) + ESLint (rule violations) + Data Flow (semantic patterns) + AI (correctness scoring). See CLAUDE.md "Analysis Architecture" section.
+- **Detectors:** 30 Babel detector files in `src/lib/analysis/detectors/` + ESLint detector at `src/lib/analysis/eslintDetector.ts` + Data Flow detector at `src/lib/analysis/dataFlowDetector.ts`. Type inference + alias tracking at `src/lib/analysis/typeInference.ts`. All registered in `src/lib/analysis/index.ts`.
 - **ESLint config:** Uses `Linter` class with flat config (ESLint 9). Requires `serverExternalPackages` in `next.config.ts` for Turbopack. 22 ESLint rules overlap with Babel topics (mapped, not duplicated).
-- **Token limit:** `MAX_FEEDBACK_TOKENS: 4096` in constants.ts. Needed because 50+ topics generate large TOPIC_SCORES blocks. `parseTopicScores()` includes truncation recovery as safety net.

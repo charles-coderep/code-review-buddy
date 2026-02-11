@@ -132,6 +132,7 @@ export default async function PatternLibraryPage() {
   };
 
   return (
+    <div className="p-6 lg:p-8 max-w-6xl">
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold text-white mb-2">Topic Library</h1>
       <p className="text-slate-400 mb-8">
@@ -218,6 +219,7 @@ export default async function PatternLibraryPage() {
             </div>
           ))}
       </div>
+    </div>
     </div>
   );
 }

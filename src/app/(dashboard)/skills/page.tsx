@@ -27,18 +27,20 @@ export default async function SkillsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Skill Matrix</h1>
-        <p className="text-muted-foreground">
-          Your Glicko-2 ratings across all topic markers
-        </p>
-      </div>
+    <div className="p-6 lg:p-8 max-w-6xl">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Skill Matrix</h1>
+          <p className="text-muted-foreground">
+            Your Glicko-2 ratings across all topic markers
+          </p>
+        </div>
 
-      <SkillMatrixView
-        initialData={result.data}
-        initialFrameworks={frameworks}
-      />
+        <SkillMatrixView
+          initialData={result.data}
+          initialFrameworks={frameworks}
+        />
+      </div>
     </div>
   );
 }

@@ -24,6 +24,7 @@ export interface ReviewSubmissionInput {
   code: string;
   language?: CodeLanguage;
   description?: string;
+  snippetId?: string;
 }
 
 export interface ReviewResult {
@@ -133,6 +134,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
     const submission = await prisma.submission.create({
       data: {
         userId,
+        snippetId: input.snippetId || null,
         code: input.code,
         language: analysis.parsed.language,
         description: input.description,
