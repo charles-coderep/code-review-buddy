@@ -53,9 +53,9 @@ export function detectForLoopBasics(ast: File): LoopContextDetection[] {
 export function detectForOfLoops(ast: File): LoopContextDetection[] {
   const detections: LoopContextDetection[] = [];
   let foundForOf = false;
-  let foundForIn = false;
 
   traverse(ast, (node) => {
+    // Only detect actual for...of statements — for...in is handled by controlFlow.ts
     if (isNodeType(node, "ForOfStatement") && !foundForOf) {
       foundForOf = true;
       detections.push({
@@ -66,21 +66,6 @@ export function detectForOfLoops(ast: File): LoopContextDetection[] {
         isIdiomatic: true,
         location: getNodeLocation(node) ?? undefined,
         details: "for...of loop used for iteration",
-      });
-    }
-
-    // Detect for...in on arrays (anti-pattern)
-    if (isNodeType<{ right?: { type?: string } }>(node, "ForInStatement") && !foundForIn) {
-      foundForIn = true;
-      detections.push({
-        topicSlug: "for-of-loops",
-        detected: true,
-        isPositive: false,
-        isNegative: true,
-        isIdiomatic: false,
-        isTrivial: true,
-        location: getNodeLocation(node) ?? undefined,
-        details: "for...in iterates over keys - consider for...of for values",
       });
     }
   });

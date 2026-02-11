@@ -386,6 +386,30 @@ Expanded the TOPIC_SCORES instruction in `buildSystemPrompt()` (`src/lib/grok.ts
   - Data flow detections catching shared references and array-as-object bugs
   - AI scoring well calibrated with severity weighting
 
+## COMPLETE: Phase 9 — Coding Sandbox & Coaching IDE
+
+- [x] Snippet model in Prisma schema (id, userId, title, code, language, timestamps, Cascade delete)
+- [x] Submission `snippetId` FK with `onDelete: SetNull`
+- [x] Snippet CRUD server actions (`src/app/actions/snippets.ts`) — list, get, create, update, delete
+- [x] 3-pane IDE layout with `react-resizable-panels` v4 (Library 18% | Editor 50% | Output 32%)
+- [x] Collapsible snippet library sidebar (`src/components/review/snippet-library.tsx`)
+- [x] Toolbar: library toggle, title input, save, run, submit for coaching
+- [x] Console output pane via Web Worker (`public/sandbox-worker.js`, 3s timeout)
+- [x] Console output component (`src/components/review/console-output.tsx`)
+- [x] Pipeline progress animation extracted (`src/components/review/pipeline-progress.tsx`)
+- [x] Right pane tabs: Console | Coaching (with stale state yellow dot)
+- [x] Mobile layout: full-screen tabs (Editor | Console | Coaching) with Sheet snippet library
+- [x] Keyboard shortcuts: Ctrl+S save, Ctrl+Enter run, Ctrl+Shift+Enter submit
+- [x] Stale state detection (yellow banner + opacity when code changes post-coaching)
+- [x] Dashboard shell updated to `overflow-hidden`, pages own their padding
+- [x] Build passes clean
+
+### Phase 9 Bug Fix: for-in slug misclassification
+
+- [x] Fixed `loopsAndContext.ts` — `ForInStatement` was emitting under `for-of-loops` slug instead of `for-in-loops`
+- [x] Removed duplicate `for-in` detection from `loopsAndContext.ts` (canonical detector is in `controlFlow.ts`)
+- [x] Build verified clean
+
 ## Other TODO
 
 - [ ] Phase F: Topic detail page (stretch — /topics/[slug])
