@@ -25,7 +25,6 @@ import {
 } from "@/components/review/console-output";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
@@ -37,7 +36,6 @@ import {
   Loader2,
   Play,
   Send,
-  Save,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -144,6 +142,11 @@ export default function ReviewPage() {
     },
     [result]
   );
+
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    setIsDirty(true);
+  }, []);
 
   const refreshSnippetList = useCallback(async () => {
     const res = await getUserSnippets();
@@ -320,6 +323,23 @@ export default function ReviewPage() {
   // =============================================
   // Shared sub-components
   // =============================================
+  const hasUnsavedDraft = !activeSnippetId && code.trim().length > 0;
+
+  const snippetLibraryProps = {
+    snippets,
+    activeId: activeSnippetId,
+    loading: snippetsLoading,
+    onSelect: handleLoadSnippet,
+    onNew: handleNewSnippet,
+    onDelete: handleDeleteSnippet,
+    title,
+    onTitleChange: handleTitleChange,
+    onSave: handleSave,
+    isDirty,
+    isSaving,
+    hasUnsavedDraft,
+  };
+
   const monacoEditor = (
     <MonacoEditor
       height="100%"
@@ -366,84 +386,80 @@ export default function ReviewPage() {
     <span className="ml-1 w-2 h-2 rounded-full bg-yellow-500 inline-block" />
   );
 
+  const editorToolbar = (
+    <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border bg-background shrink-0">
+      {/* Panel toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 cursor-pointer"
+        onClick={() => setShowLibrary(!showLibrary)}
+      >
+        {showLibrary ? (
+          <PanelLeftClose className="h-4 w-4" />
+        ) : (
+          <PanelLeft className="h-4 w-4" />
+        )}
+      </Button>
+
+      <div className="flex-1" />
+
+      {/* Run */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="cursor-pointer"
+        onClick={handleRun}
+        disabled={isRunning || !code.trim()}
+      >
+        <Play className="h-4 w-4" />
+        <span className="ml-1">Run</span>
+      </Button>
+
+      {/* Submit for Coaching */}
+      <Button
+        size="sm"
+        className="cursor-pointer"
+        onClick={handleSubmitForCoaching}
+        disabled={loading || !code.trim()}
+      >
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
+        <span className="ml-1">Submit for Coaching</span>
+      </Button>
+    </div>
+  );
+
   // =============================================
   // Render
   // =============================================
   return (
     <div className="h-[calc(100dvh-49px)] lg:h-screen flex flex-col">
-      {/* ============ TOOLBAR ============ */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-background shrink-0">
-        {/* Library toggle - desktop */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="hidden lg:inline-flex"
-          onClick={() => setShowLibrary(!showLibrary)}
-        >
-          {showLibrary ? (
-            <PanelLeftClose className="h-4 w-4" />
-          ) : (
-            <PanelLeft className="h-4 w-4" />
-          )}
-        </Button>
-
+      {/* ============ MOBILE-ONLY TOOLBAR ============ */}
+      <div className="lg:hidden flex items-center gap-2 px-3 py-2 border-b border-border bg-background shrink-0">
         {/* Library toggle - mobile (Sheet) */}
         <Sheet open={mobileLibraryOpen} onOpenChange={setMobileLibraryOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden">
+            <Button variant="ghost" size="icon" className="cursor-pointer">
               <PanelLeft className="h-4 w-4" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
             <SheetTitle className="sr-only">Snippet Library</SheetTitle>
-            <SnippetLibrary
-              snippets={snippets}
-              activeId={activeSnippetId}
-              loading={snippetsLoading}
-              onSelect={handleLoadSnippet}
-              onNew={handleNewSnippet}
-              onDelete={handleDeleteSnippet}
-            />
+            <SnippetLibrary {...snippetLibraryProps} />
           </SheetContent>
         </Sheet>
 
-        {/* Title input - desktop */}
-        <Input
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-            setIsDirty(true);
-          }}
-          className="hidden sm:block w-48 h-8 text-sm"
-          placeholder="Snippet title..."
-        />
-
-        {/* Title label - mobile */}
-        <span className="sm:hidden text-sm font-medium truncate max-w-32">
-          {title}
-        </span>
-
         <div className="flex-1" />
-
-        {/* Save */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSave}
-          disabled={!isDirty || isSaving}
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          <span className="hidden sm:inline ml-1">Save</span>
-        </Button>
 
         {/* Run */}
         <Button
           variant="outline"
           size="sm"
+          className="cursor-pointer"
           onClick={handleRun}
           disabled={isRunning || !code.trim()}
         >
@@ -454,6 +470,7 @@ export default function ReviewPage() {
         {/* Submit for Coaching */}
         <Button
           size="sm"
+          className="cursor-pointer"
           onClick={handleSubmitForCoaching}
           disabled={loading || !code.trim()}
         >
@@ -468,29 +485,25 @@ export default function ReviewPage() {
 
       {/* ============ DESKTOP 3-PANE LAYOUT ============ */}
       <div className="flex-1 hidden lg:block overflow-hidden">
-        <PanelGroup
-          orientation="horizontal"
-        >
+        <PanelGroup orientation="horizontal">
           {/* Pane A: Snippet Library */}
           {showLibrary && (
             <>
               <Panel defaultSize="18%" minSize="14%" maxSize="30%">
-                <SnippetLibrary
-                  snippets={snippets}
-                  activeId={activeSnippetId}
-                  loading={snippetsLoading}
-                  onSelect={handleLoadSnippet}
-                  onNew={handleNewSnippet}
-                  onDelete={handleDeleteSnippet}
-                />
+                <SnippetLibrary {...snippetLibraryProps} />
               </Panel>
               <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
             </>
           )}
 
-          {/* Pane B: Monaco Editor */}
+          {/* Pane B: Editor with toolbar */}
           <Panel defaultSize={showLibrary ? "50%" : "58%"} minSize="30%">
-            {monacoEditor}
+            <div className="h-full flex flex-col">
+              {editorToolbar}
+              <div className="flex-1 overflow-hidden">
+                {monacoEditor}
+              </div>
+            </div>
           </Panel>
 
           <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />

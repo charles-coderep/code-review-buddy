@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, FileCode } from "lucide-react";
+import { Plus, Trash2, FileCode, Save, Loader2 } from "lucide-react";
 import type { SnippetListItem } from "@/app/actions/snippets";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,13 @@ interface SnippetLibraryProps {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  // File controls
+  title: string;
+  onTitleChange: (title: string) => void;
+  onSave: () => void;
+  isDirty: boolean;
+  isSaving: boolean;
+  hasUnsavedDraft: boolean;
 }
 
 function timeAgo(date: Date): string {
@@ -36,15 +44,51 @@ export function SnippetLibrary({
   onSelect,
   onNew,
   onDelete,
+  title,
+  onTitleChange,
+  onSave,
+  isDirty,
+  isSaving,
+  hasUnsavedDraft,
 }: SnippetLibraryProps) {
   return (
     <div className="h-full flex flex-col bg-background border-r border-border">
+      {/* File controls header */}
       <div className="p-2 border-b border-border shrink-0">
-        <Button variant="outline" size="sm" className="w-full" onClick={onNew}>
-          <Plus className="h-4 w-4 mr-1" />
-          New Snippet
-        </Button>
+        <div className="flex items-center gap-1">
+          <Input
+            value={title}
+            onChange={(e) => {
+              onTitleChange(e.target.value);
+            }}
+            className="h-7 text-xs flex-1 min-w-0"
+            placeholder="Snippet name..."
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 cursor-pointer"
+            onClick={onSave}
+            disabled={!isDirty || isSaving}
+          >
+            {isSaving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 cursor-pointer"
+            onClick={onNew}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
+
+      {/* Snippet list */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="p-2 space-y-2">
@@ -52,7 +96,7 @@ export function SnippetLibrary({
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
-        ) : snippets.length === 0 ? (
+        ) : snippets.length === 0 && !hasUnsavedDraft ? (
           <div className="p-4 text-center text-sm text-muted-foreground">
             <FileCode className="h-8 w-8 mx-auto mb-2 opacity-50" />
             No snippets yet.
@@ -61,15 +105,36 @@ export function SnippetLibrary({
           </div>
         ) : (
           <div className="p-1 space-y-0.5">
-            {snippets.map((snippet) => (
-              <button
-                key={snippet.id}
-                onClick={() => onSelect(snippet.id)}
+            {/* Unsaved draft entry */}
+            {hasUnsavedDraft && !activeId && (
+              <div
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-md text-sm transition-colors group flex items-center justify-between",
+                  "w-full text-left px-3 py-2 rounded-md text-sm",
+                  "ring-1 ring-primary/40 bg-transparent opacity-60"
+                )}
+              >
+                <p className="font-medium truncate italic">
+                  {title || "Untitled"}
+                </p>
+                <span className="text-xs text-muted-foreground">Unsaved</span>
+              </div>
+            )}
+
+            {/* Saved snippets */}
+            {snippets.map((snippet) => (
+              <div
+                key={snippet.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(snippet.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onSelect(snippet.id);
+                }}
+                className={cn(
+                  "w-full text-left px-3 py-2 rounded-md text-sm transition-colors group flex items-center justify-between cursor-pointer",
                   snippet.id === activeId
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-accent/50"
+                    ? "ring-1 ring-white/60 bg-accent text-accent-foreground"
+                    : "bg-muted/40 hover:bg-accent/50"
                 )}
               >
                 <div className="min-w-0 flex-1">
@@ -87,7 +152,7 @@ export function SnippetLibrary({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0 ml-1"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0 ml-1 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(snippet.id);
@@ -95,7 +160,7 @@ export function SnippetLibrary({
                 >
                   <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
-              </button>
+              </div>
             ))}
           </div>
         )}

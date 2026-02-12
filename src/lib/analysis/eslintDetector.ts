@@ -197,7 +197,7 @@ const CORE_RULES: Record<string, Linter.RuleEntry> = {
   "logical-assignment-operators": "warn",
   "prefer-named-capture-group": "warn",
   "no-magic-numbers": ["warn", {
-    ignore: [0, 1, -1, 2, 100],
+    ignore: [0, 1, -1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100],
     ignoreDefaultValues: true,
     ignoreArrayIndexes: true,
   }],

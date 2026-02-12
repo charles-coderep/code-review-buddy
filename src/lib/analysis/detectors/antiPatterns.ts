@@ -225,6 +225,9 @@ function detectNoMagicNumbers(ast: File): Detection[] {
     // Skip object property values (config objects are fine)
     if (p?.type === "ObjectProperty") return;
 
+    // Skip numbers inside array literals (data, not logic constants)
+    if (p?.type === "ArrayExpression") return;
+
     found = true;
     detections.push({
       topicSlug: "no-magic-numbers",

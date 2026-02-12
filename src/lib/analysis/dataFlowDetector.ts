@@ -138,8 +138,28 @@ function detectDeepNesting(ast: File): Detection[] {
     if (!node || typeof node !== "object") return;
     const n = node as Record<string, unknown>;
 
-    const isBlock =
-      n.type === "BlockStatement" ||
+    // Reset depth at function boundaries (each function starts fresh)
+    if (
+      n.type === "FunctionDeclaration" ||
+      n.type === "FunctionExpression" ||
+      n.type === "ArrowFunctionExpression"
+    ) {
+      for (const key of Object.keys(n)) {
+        if (key === "loc" || key === "start" || key === "end") continue;
+        const value = n[key];
+        if (Array.isArray(value)) {
+          value.forEach((child) => walkNesting(child, 0));
+        } else if (value && typeof value === "object") {
+          walkNesting(value, 0);
+        }
+      }
+      return;
+    }
+
+    // Only count control flow structures, NOT BlockStatement.
+    // BlockStatement is just the syntactic wrapper for a control structure's body —
+    // counting both double-counts (for + its BlockStatement body = 2 instead of 1).
+    const isControlFlow =
       n.type === "IfStatement" ||
       n.type === "ForStatement" ||
       n.type === "ForInStatement" ||
@@ -149,9 +169,9 @@ function detectDeepNesting(ast: File): Detection[] {
       n.type === "SwitchStatement" ||
       n.type === "TryStatement";
 
-    const newDepth = isBlock ? depth + 1 : depth;
+    const newDepth = isControlFlow ? depth + 1 : depth;
 
-    if (newDepth > MAX_DEPTH && isBlock) {
+    if (newDepth > MAX_DEPTH && isControlFlow) {
       const loc = getNodeLocation(node);
       if (loc && !flaggedLines.has(loc.line)) {
         flaggedLines.add(loc.line);
