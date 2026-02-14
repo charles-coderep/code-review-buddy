@@ -410,6 +410,40 @@ Expanded the TOPIC_SCORES instruction in `buildSystemPrompt()` (`src/lib/grok.ts
 - [x] Removed duplicate `for-in` detection from `loopsAndContext.ts` (canonical detector is in `controlFlow.ts`)
 - [x] Build verified clean
 
+## COMPLETE: Detection Quality Fixes & Scoring Audit Log
+
+### False Positive Fixes
+
+- [x] **`deep-nesting` false positive** — `dataFlowDetector.ts` was double-counting: `BlockStatement` counted alongside control structures. Fixed by removing `BlockStatement` from nesting check and adding function boundary depth resets. `function→for→if` now correctly = depth 2 (not 5).
+- [x] **`no-magic-numbers` noise on array literals** — Fixed in two places: Babel detector (`antiPatterns.ts`) now skips `ArrayExpression` parents; ESLint config (`eslintDetector.ts`) expanded ignore list to 0-10.
+- [x] **`no-var-usage` free inflation** — Removed positive emission from `detectNoVarUsage()` in `antiPatterns.ts`. Not using `var` is the baseline, not evidence of skill. Topic now only fires negative when `var` is actually found.
+
+### AI Scoring Prompt Fix
+
+- [x] **Rule 11: Engine-detected correct usage** — Added to `grok.ts` system prompt. If engine detects a topic as Positive and the code is actually correct, AI must score 0.6+ (Competent). Prevents AI from penalizing correct-but-simple usage (e.g., `.push()` on `property-access-patterns` scored as MISTAKE).
+
+### UI Fixes
+
+- [x] **Nested `<button>` hydration error** — `snippet-library.tsx` outer `<button>` elements changed to `<div role="button">` with keyboard handlers.
+- [x] **Missing cursor-pointer** — Added `cursor-pointer` to all interactive buttons in review page and snippet library (Tailwind v4 doesn't auto-apply).
+- [x] **Layout reorganization** — File controls (title, save, +new) moved to left panel header. Run/Submit moved to mini-toolbar above editor. Visual states for snippet list items (active=white ring, saved=grey, unsaved=translucent).
+
+### Scoring Audit Log
+
+- [x] **Backend** (`src/app/actions/review.ts`) — Added `scoringAudit` array to `ReviewResult`. Captures per topic: input state (rating, RD, volatility), AI score, expected score (via `calculateExpectedScore`), surprise delta, error classification override, and final rating update.
+- [x] **Frontend** (`src/components/review/review-results.tsx`) — New collapsible "Scoring Audit Log" section with color-coded cards showing the full Glicko-2 thought process per topic. Green cards for gains, red for losses. Shows expected vs actual, surprise label (Big Win/Win/Neutral/Miss/Big Miss), error classification overrides.
+
+### Files Changed
+
+- `src/lib/analysis/dataFlowDetector.ts` — deep-nesting fix
+- `src/lib/analysis/detectors/antiPatterns.ts` — magic numbers + no-var-usage fixes
+- `src/lib/analysis/eslintDetector.ts` — magic numbers ignore list expansion
+- `src/lib/grok.ts` — AI scoring rule 11
+- `src/components/review/snippet-library.tsx` — hydration + layout fixes
+- `src/app/(dashboard)/review/page.tsx` — layout reorganization
+- `src/app/actions/review.ts` — scoring audit data capture
+- `src/components/review/review-results.tsx` — scoring audit UI component
+
 ## Other TODO
 
 - [ ] Phase F: Topic detail page (stretch — /topics/[slug])

@@ -25,7 +25,6 @@ interface Detection {
 function detectNoVarUsage(ast: File): Detection[] {
   const detections: Detection[] = [];
   let foundVar = false;
-  let foundLetConst = false;
 
   traverse(ast, (node) => {
     if (isNodeType<{ kind?: string }>(node, "VariableDeclaration")) {
@@ -43,23 +42,11 @@ function detectNoVarUsage(ast: File): Detection[] {
           details: "var declaration found — use let or const instead",
         });
       }
-      if (kind === "let" || kind === "const") {
-        foundLetConst = true;
-      }
     }
   });
 
-  // If only let/const used, report positive
-  if (!foundVar && foundLetConst) {
-    detections.push({
-      topicSlug: "no-var-usage",
-      detected: true,
-      isPositive: true,
-      isNegative: false,
-      isIdiomatic: true,
-      details: "No var declarations — using modern let/const",
-    });
-  }
+  // Not using var is the baseline — no positive emission.
+  // The topic only engages when var is actually found (negative).
 
   return detections;
 }

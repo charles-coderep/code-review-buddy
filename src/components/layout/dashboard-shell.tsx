@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -19,6 +20,8 @@ import {
   BookOpen,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 
 interface DashboardShellProps {
@@ -63,6 +66,8 @@ function NavLinks({ pathname }: { pathname: string }) {
 
 export function DashboardShell({ user, children }: DashboardShellProps) {
   const pathname = usePathname();
+  const isReviewPage = pathname === "/review";
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,36 +96,70 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
 
       <div className="flex">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:flex lg:flex-col w-64 border-r border-border min-h-screen p-4">
-          <div className="mb-6">
-            <h1 className="text-lg font-bold">Cortext</h1>
-            <p className="text-xs text-muted-foreground">Coding Coach</p>
-          </div>
-
-          <NavLinks pathname={pathname} />
-
-          <div className="mt-auto pt-4">
-            <Separator className="mb-4" />
-            <div className="px-3 mb-2">
-              <p className="text-sm font-medium truncate">
-                {user.name || user.email}
-              </p>
-              {user.name && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {user.email}
-                </p>
-              )}
-            </div>
+        <aside
+          className={cn(
+            "hidden lg:flex lg:flex-col border-r border-border min-h-screen transition-all duration-200",
+            isReviewPage && sidebarCollapsed
+              ? "w-10 p-1 pt-3 items-center"
+              : "w-64 p-4"
+          )}
+        >
+          {isReviewPage && sidebarCollapsed ? (
             <Button
               variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2 text-muted-foreground"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              size="icon"
+              className="h-7 w-7 cursor-pointer"
+              onClick={() => setSidebarCollapsed(false)}
+              title="Expand sidebar"
             >
-              <LogOut className="h-4 w-4" />
-              Sign Out
+              <PanelLeft className="h-4 w-4" />
             </Button>
-          </div>
+          ) : (
+            <>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h1 className="text-lg font-bold">Cortext</h1>
+                  <p className="text-xs text-muted-foreground">Coding Coach</p>
+                </div>
+                {isReviewPage && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 cursor-pointer"
+                    onClick={() => setSidebarCollapsed(true)}
+                    title="Collapse sidebar"
+                  >
+                    <PanelLeftClose className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              <NavLinks pathname={pathname} />
+
+              <div className="mt-auto pt-4">
+                <Separator className="mb-4" />
+                <div className="px-3 mb-2">
+                  <p className="text-sm font-medium truncate">
+                    {user.name || user.email}
+                  </p>
+                  {user.name && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-muted-foreground"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </div>
+            </>
+          )}
         </aside>
 
         {/* Main content */}

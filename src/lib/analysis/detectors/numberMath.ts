@@ -34,10 +34,9 @@ interface CallExpr {
 
 function detectNumberParsing(ast: File): Detection[] {
   const detections: Detection[] = [];
-  let found = false;
+  let foundExplicit = false;
 
   traverse(ast, (node) => {
-    if (found) return;
     if (!isNodeType<CallExpr>(node, "CallExpression")) return;
 
     const name = node.callee.name;
@@ -45,7 +44,7 @@ function detectNumberParsing(ast: File): Detection[] {
     const propName = node.callee.property?.name;
 
     if (name === "parseInt" || name === "parseFloat") {
-      found = true;
+      foundExplicit = true;
       const hasRadix = name === "parseInt" && node.arguments.length >= 2;
       detections.push({
         topicSlug: "number-parsing",
@@ -63,7 +62,7 @@ function detectNumberParsing(ast: File): Detection[] {
     }
 
     if (name === "Number" || (objName === "Number" && propName === "parseInt") || (objName === "Number" && propName === "parseFloat")) {
-      found = true;
+      foundExplicit = true;
       detections.push({
         topicSlug: "number-parsing",
         detected: true,
@@ -76,14 +75,12 @@ function detectNumberParsing(ast: File): Detection[] {
     }
   });
 
-  // Detect unary + for number coercion
-  if (!found) {
+  // Detect unary + for number coercion (only if no explicit parsing found)
+  if (!foundExplicit) {
     traverse(ast, (node) => {
-      if (found) return;
       if (isNodeType<{ operator?: string; prefix?: boolean }>(node, "UnaryExpression")) {
         const unary = node as { operator?: string; prefix?: boolean };
         if (unary.operator === "+" && unary.prefix) {
-          found = true;
           detections.push({
             topicSlug: "number-parsing",
             detected: true,

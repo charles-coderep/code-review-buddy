@@ -8,7 +8,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { analyzeCode, serializeAnalysis, scoreTopicPerformance, prioritizeIssues, type CodeLanguage } from "@/lib/analysis";
-import { updateRating, createInitialRating } from "@/lib/glicko2";
+import { updateRating, createInitialRating, calculateExpectedScore } from "@/lib/glicko2";
 import { classifyError, calculatePerformanceScore, type PerformanceRecord } from "@/lib/errorClassification";
 import { checkAndUpdateStuckStatus, getStuckTopics } from "@/lib/stuckDetection";
 import { findWeakestPrerequisite } from "@/lib/prerequisites";
@@ -38,6 +38,7 @@ export interface ReviewResult {
   skillChanges?: Array<{
     topicSlug: string;
     topicName: string;
+    tier: "scored" | "neutral";
     ratingBefore: number;
     ratingAfter: number;
     change: number;
@@ -50,6 +51,7 @@ export interface ReviewResult {
   analysisPreview?: {
     issuesCount: number;
     positiveCount: number;
+    neutralCount: number;
     topicsDetected: string[];
   };
   engineDetails?: {
@@ -62,6 +64,7 @@ export interface ReviewResult {
       isPositive: boolean;
       isNegative: boolean;
       isIdiomatic: boolean;
+      isInferred?: boolean;
       details?: string;
       location?: { line: number; column: number };
       source?: "babel" | "eslint" | "dataflow";
@@ -80,6 +83,23 @@ export interface ReviewResult {
     }>;
     scoringSource: "ai" | "ast-fallback";
   };
+  scoringAudit?: Array<{
+    topicSlug: string;
+    topicName: string;
+    tier: "scored" | "neutral";
+    ratingBefore: number;
+    rdBefore: number;
+    volatilityBefore: number;
+    aiScore: number | null;
+    aiReason: string | null;
+    performanceScore: number;
+    expectedScore: number;
+    surprise: number;
+    ratingAfter: number;
+    rdAfter: number;
+    ratingChange: number;
+    errorType: string | null;
+  }>;
 }
 
 // =============================================
@@ -145,6 +165,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
     // 5. Prepare AST fallback scores (used if AI scoring unavailable)
     const topicPerformances = scoreTopicPerformance(analysis.detections);
     const skillChanges: ReviewResult["skillChanges"] = [];
+    const scoringAudit: NonNullable<ReviewResult["scoringAudit"]> = [];
 
     // Build unique detected topics list for Grok
     const detectedTopicSlugs = [...new Set(analysis.detections.map((d) => d.topicSlug))];
@@ -156,8 +177,14 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
         source: detection?.source,
         details: detection?.details,
         isPositive: detection ? detection.isPositive && !detection.isNegative : undefined,
+        isInferred: detection?.isInferred ?? false,
       };
     });
+
+    // Identify neutral (inferred) topic slugs — these skip scoring + Glicko-2
+    const neutralSlugs = new Set(
+      detectedTopics.filter((t) => t.isInferred).map((t) => t.slug)
+    );
 
     // Get topic slugs to IDs mapping (from all detected topics)
     const topicSlugs = detectedTopicSlugs;
@@ -223,6 +250,47 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
     for (const topicSlug of detectedTopicSlugs) {
       const topic = topicMap.get(topicSlug);
       if (!topic) continue;
+
+      // Neutral tier — show in UI but skip scoring + Glicko-2
+      if (neutralSlugs.has(topicSlug)) {
+        const existingSkill = await prisma.userSkillMatrix.findUnique({
+          where: { userId_topicId: { userId, topicId: topic.id } },
+          select: { rating: true, rd: true, volatility: true },
+        });
+        const currentRating = existingSkill?.rating ?? 1500;
+        const currentRd = existingSkill?.rd ?? 350;
+        const currentVol = existingSkill?.volatility ?? 0.06;
+
+        skillChanges.push({
+          topicSlug: topic.slug,
+          topicName: topic.name,
+          tier: "neutral",
+          ratingBefore: Math.round(currentRating),
+          ratingAfter: Math.round(currentRating),
+          change: 0,
+          errorType: null,
+        });
+
+        scoringAudit.push({
+          topicSlug: topic.slug,
+          topicName: topic.name,
+          tier: "neutral",
+          ratingBefore: Math.round(currentRating),
+          rdBefore: Math.round(currentRd),
+          volatilityBefore: Math.round(currentVol * 1000) / 1000,
+          aiScore: null,
+          aiReason: null,
+          performanceScore: 0,
+          expectedScore: 0,
+          surprise: 0,
+          ratingAfter: Math.round(currentRating),
+          rdAfter: Math.round(currentRd),
+          ratingChange: 0,
+          errorType: null,
+        });
+
+        continue;
+      }
 
       // Get or create user skill
       let skill = await prisma.userSkillMatrix.findUnique({
@@ -309,6 +377,9 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
         }
       }
 
+      // Calculate expected score for audit log
+      const expectedScore = calculateExpectedScore(skill.rating, 1500);
+
       // Update Glicko-2 rating
       const ratingUpdate = updateRating(
         {
@@ -323,9 +394,29 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
       skillChanges.push({
         topicSlug: topic.slug,
         topicName: topic.name,
+        tier: "scored",
         ratingBefore: Math.round(skill.rating),
         ratingAfter: Math.round(ratingUpdate.newRating),
         change: Math.round(ratingUpdate.ratingChange),
+        errorType,
+      });
+
+      // Store scoring audit entry
+      scoringAudit.push({
+        topicSlug: topic.slug,
+        topicName: topic.name,
+        tier: "scored",
+        ratingBefore: Math.round(skill.rating),
+        rdBefore: Math.round(skill.rd),
+        volatilityBefore: Math.round(skill.volatility * 1000) / 1000,
+        aiScore: aiScore?.score ?? null,
+        aiReason: aiScore?.reason ?? null,
+        performanceScore: Math.round(performanceScore * 100) / 100,
+        expectedScore: Math.round(expectedScore * 100) / 100,
+        surprise: Math.round((performanceScore - expectedScore) * 100) / 100,
+        ratingAfter: Math.round(ratingUpdate.newRating),
+        rdAfter: Math.round(ratingUpdate.newRd),
+        ratingChange: Math.round(ratingUpdate.ratingChange),
         errorType,
       });
 
@@ -418,6 +509,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
       analysisPreview: {
         issuesCount: analysis.issuesFound.length,
         positiveCount: analysis.positiveFindings.length,
+        neutralCount: analysis.summary.neutralCount,
         topicsDetected: analysis.topicsDetected,
       },
       engineDetails: {
@@ -430,6 +522,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
           isPositive: d.isPositive,
           isNegative: d.isNegative,
           isIdiomatic: d.isIdiomatic,
+          isInferred: d.isInferred,
           details: d.details,
           location: d.location,
           source: d.source,
@@ -448,6 +541,7 @@ export async function submitReview(input: ReviewSubmissionInput): Promise<Review
         })),
         scoringSource: useAiScoring ? "ai" : "ast-fallback",
       },
+      scoringAudit,
     };
   } catch (error) {
     console.error("Review submission error:", error);

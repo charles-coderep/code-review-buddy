@@ -13,6 +13,7 @@ interface SnippetLibraryProps {
   activeId: string | null;
   loading: boolean;
   onSelect: (id: string) => void;
+  onSelectDraft: () => void;
   onNew: () => void;
   onDelete: (id: string) => void;
   // File controls
@@ -22,6 +23,8 @@ interface SnippetLibraryProps {
   isDirty: boolean;
   isSaving: boolean;
   hasUnsavedDraft: boolean;
+  isDraftActive: boolean;
+  draftTitle?: string;
 }
 
 function timeAgo(date: Date): string {
@@ -42,6 +45,7 @@ export function SnippetLibrary({
   activeId,
   loading,
   onSelect,
+  onSelectDraft,
   onNew,
   onDelete,
   title,
@@ -50,6 +54,8 @@ export function SnippetLibrary({
   isDirty,
   isSaving,
   hasUnsavedDraft,
+  isDraftActive,
+  draftTitle,
 }: SnippetLibraryProps) {
   return (
     <div className="h-full flex flex-col bg-background border-r border-border">
@@ -106,15 +112,23 @@ export function SnippetLibrary({
         ) : (
           <div className="p-1 space-y-0.5">
             {/* Unsaved draft entry */}
-            {hasUnsavedDraft && !activeId && (
+            {hasUnsavedDraft && (
               <div
+                role="button"
+                tabIndex={0}
+                onClick={() => !isDraftActive && onSelectDraft()}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && !isDraftActive) onSelectDraft();
+                }}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-md text-sm",
-                  "ring-1 ring-primary/40 bg-transparent opacity-60"
+                  "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                  isDraftActive
+                    ? "ring-1 ring-white/60 bg-transparent"
+                    : "bg-transparent hover:bg-accent/50 cursor-pointer"
                 )}
               >
                 <p className="font-medium truncate italic">
-                  {title || "Untitled"}
+                  {isDraftActive ? (title || "Untitled") : (draftTitle || "Untitled")}
                 </p>
                 <span className="text-xs text-muted-foreground">Unsaved</span>
               </div>
@@ -133,8 +147,8 @@ export function SnippetLibrary({
                 className={cn(
                   "w-full text-left px-3 py-2 rounded-md text-sm transition-colors group flex items-center justify-between cursor-pointer",
                   snippet.id === activeId
-                    ? "ring-1 ring-white/60 bg-accent text-accent-foreground"
-                    : "bg-muted/40 hover:bg-accent/50"
+                    ? "ring-1 ring-white/60 bg-muted text-accent-foreground"
+                    : "bg-muted hover:bg-accent/50"
                 )}
               >
                 <div className="min-w-0 flex-1">

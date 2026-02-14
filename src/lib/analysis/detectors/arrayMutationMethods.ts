@@ -336,14 +336,11 @@ function detectArrayFromIsArray(ast: File): Detection[] {
 
 function detectArrayLength(ast: File): Detection[] {
   const detections: Detection[] = [];
-  let found = false;
 
   traverse(ast, (node) => {
-    if (found) return;
     if (!isNodeType<MemberExpr>(node, "MemberExpression")) return;
 
     if (node.property?.name === "length" && !node.computed) {
-      found = true;
       detections.push({
         topicSlug: "array-length",
         detected: true,
@@ -365,23 +362,26 @@ function detectArrayLength(ast: File): Detection[] {
 
 function detectBracketNotation(ast: File): Detection[] {
   const detections: Detection[] = [];
-  let found = false;
 
   traverse(ast, (node) => {
-    if (found) return;
     if (!isNodeType<MemberExpr>(node, "MemberExpression")) return;
 
-    if (node.computed && node.property?.type === "NumericLiteral") {
-      found = true;
-      detections.push({
-        topicSlug: "bracket-notation",
-        detected: true,
-        isPositive: true,
-        isNegative: false,
-        isIdiomatic: true,
-        location: getNodeLocation(node) ?? undefined,
-        details: "Bracket notation used for indexed access",
-      });
+    if (node.computed) {
+      const propType = node.property?.type;
+      // Detect numeric indexing (arr[0]) and dynamic access (obj[key])
+      if (propType === "NumericLiteral" || propType === "Identifier" || propType === "MemberExpression") {
+        detections.push({
+          topicSlug: "bracket-notation",
+          detected: true,
+          isPositive: true,
+          isNegative: false,
+          isIdiomatic: true,
+          location: getNodeLocation(node) ?? undefined,
+          details: propType === "NumericLiteral"
+            ? "Bracket notation used for indexed access"
+            : "Bracket notation used for dynamic property access",
+        });
+      }
     }
   });
 

@@ -28,6 +28,7 @@ export interface GrokRequest {
     source?: "babel" | "eslint" | "dataflow";
     details?: string;
     isPositive?: boolean;
+    isInferred?: boolean;
   }>;
   userContext: UserContext;
 }
@@ -159,8 +160,9 @@ CRITICAL SCORING RULES:
    - Shallow copy via spread: If \`{...obj}\` is used to "copy" an object but nested properties are later mutated through the copy (affecting the original), score spread-operator 0.3.
    - General principle: Correct syntax with incorrect data flow = incorrect usage. Always check what happens to the VALUE produced by a pattern, not just whether the pattern appears.
 8. EVALUATE INTERACTIONS BETWEEN TOPICS. A single bug can affect multiple topic scores. If destructuring removes a key that a later spread needed, BOTH object-destructuring AND spread-operator should score low. Do not score topics in isolation — trace the full chain.
-9. INFERRED POSITIVE DETECTIONS. When scoring topics marked as "Correct usage inferred", consider the complexity and meaningfulness of the pattern avoided. Score trivial avoidances conservatively (0.5-0.7) — for example, not using the Function constructor or not creating useless returns requires no real skill demonstration. Score complex pattern avoidances higher (0.8-0.9) — for example, correctly avoiding mutation during iteration, not awaiting inside loops, or properly handling race conditions with shared async state shows genuine understanding. Never score inferred positives at 1.0 — that is reserved for directly observed idiomatic usage.
-10. TRIVIAL CODE USAGE. Evaluate whether a topic was exercised meaningfully or just appeared minimally. A single \`const myName = 'Peter'\` does not demonstrate mastery of let-const-usage — score 0.4-0.6. A file that consistently uses const/let across multiple declarations with appropriate mutability choices (const for values that don't change, let only when reassigned) demonstrates real understanding — score 0.8-1.0. Apply this principle to all topics: one trivial use of a pattern is weak evidence, repeated and purposeful use is strong evidence. The more complex and deliberate the usage, the higher the score.`;
+9. INFERRED POSITIVE DETECTIONS are excluded from the scoring list. You will only see directly-observed topics. Do not invent scores for topics not in the COMPLETE LIST OF SLUGS TO SCORE.
+10. TRIVIAL CODE USAGE. Evaluate whether a topic was exercised meaningfully or just appeared minimally. A single \`const myName = 'Peter'\` does not demonstrate mastery of let-const-usage — score 0.4-0.6. A file that consistently uses const/let across multiple declarations with appropriate mutability choices (const for values that don't change, let only when reassigned) demonstrates real understanding — score 0.8-1.0. Apply this principle to all topics: one trivial use of a pattern is weak evidence, repeated and purposeful use is strong evidence. The more complex and deliberate the usage, the higher the score.
+11. ENGINE-DETECTED CORRECT USAGE. If the engine detected a topic as Positive (correct usage) and the code actually uses that pattern correctly, you MUST score it 0.6 or higher (Competent/Proficient). Do NOT score a correctly-used, engine-detected positive as 0.0-0.3 (Mistake) just because the usage is simple, trivial, or basic. Simple correct usage is still correct usage. Reserve low scores for topics where the code is actually wrong, broken, or misused — not for correct code that lacks complexity.`;
 
   return `${basePrompt}
 
@@ -208,11 +210,14 @@ Consider addressing this foundational gap before diving deep into the current to
 export function buildUserPrompt(request: GrokRequest): string {
   const { code, language, issues, positiveFindings, detectedTopics, userContext } = request;
 
-  const astTopics = detectedTopics.filter((t) => t.source !== "eslint" && t.source !== "dataflow");
-  const eslintViolations = detectedTopics.filter((t) => t.source === "eslint" && !t.isPositive);
-  const eslintPositives = detectedTopics.filter((t) => t.source === "eslint" && t.isPositive);
-  const dataflowViolations = detectedTopics.filter((t) => t.source === "dataflow" && !t.isPositive);
-  const dataflowPositives = detectedTopics.filter((t) => t.source === "dataflow" && t.isPositive);
+  // Separate inferred (neutral) topics from scorable topics
+  const scorableTopics = detectedTopics.filter((t) => !t.isInferred);
+
+  const astTopics = scorableTopics.filter((t) => t.source !== "eslint" && t.source !== "dataflow");
+  const eslintViolations = scorableTopics.filter((t) => t.source === "eslint" && !t.isPositive);
+  const eslintPositives = scorableTopics.filter((t) => t.source === "eslint" && t.isPositive);
+  const dataflowViolations = scorableTopics.filter((t) => t.source === "dataflow" && !t.isPositive);
+  const dataflowPositives = scorableTopics.filter((t) => t.source === "dataflow" && t.isPositive);
 
   let prompt = `## Code to Review (${language}${userContext.isReact ? "/React" : ""})
 
@@ -266,8 +271,8 @@ ${positiveFindings.length > 0 ? positiveFindings.map((p) => `- **${p.topicSlug}*
     prompt += `\n${prereqGuidance}`;
   }
 
-  // Build explicit list of ALL slugs that need scoring
-  const allSlugs = detectedTopics.map((t) => t.slug);
+  // Build explicit list of scorable slugs (excludes inferred/neutral topics)
+  const allSlugs = scorableTopics.map((t) => t.slug);
 
   prompt += `
 ## Your Task
@@ -277,7 +282,7 @@ Provide pedagogical feedback on this code. Remember:
 3. Ask guiding questions rather than giving answers
 4. Acknowledge what they did well
 5. Be encouraging but honest
-6. After your coaching text, include the TOPIC_SCORES block scoring EVERY topic from ALL sections above (AST, ESLint, Data Flow — both violations and correct usage). You MUST score all ${allSlugs.length} topics.
+6. After your coaching text, include the TOPIC_SCORES block scoring EVERY topic from ALL sections above (AST, ESLint, Data Flow — directly observed topics only). You MUST score all ${allSlugs.length} topics.
 
 COMPLETE LIST OF SLUGS TO SCORE (do not skip any):
 ${allSlugs.map((s) => `- ${s}`).join("\n")}
@@ -514,10 +519,11 @@ function generateMockFeedback(request: GrokRequest): GrokResponse {
     feedback += `**Starting question:** Can you explain in your own words what you think ${stuck.topic.name} is supposed to do?\n`;
   }
 
-  // Generate fallback topic scores from AST detections
+  // Generate fallback topic scores from AST detections (skip inferred/neutral topics)
+  const scorableTopics = request.detectedTopics.filter((t) => !t.isInferred);
   const issueSlugs = new Set(issues.map((i) => i.topicSlug));
   const positiveSlugs = new Set(positiveFindings.map((p) => p.topicSlug));
-  const topicScores: TopicScore[] = request.detectedTopics.map((t) => {
+  const topicScores: TopicScore[] = scorableTopics.map((t) => {
     if (issueSlugs.has(t.slug)) {
       return { slug: t.slug, score: 0.3, reason: "AST flagged issue (mock fallback)" };
     }

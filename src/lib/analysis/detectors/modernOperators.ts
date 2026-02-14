@@ -241,12 +241,9 @@ function detectEqualityOperators(ast: File): Detection[] {
 
 function detectTernaryOperator(ast: File): Detection[] {
   const detections: Detection[] = [];
-  let found = false;
 
   traverse(ast, (node) => {
-    if (found) return;
     if (isNodeType(node, "ConditionalExpression")) {
-      found = true;
       detections.push({
         topicSlug: "ternary-operator",
         detected: true,

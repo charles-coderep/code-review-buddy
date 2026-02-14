@@ -24,13 +24,9 @@ export interface LoopContextDetection {
 
 export function detectForLoopBasics(ast: File): LoopContextDetection[] {
   const detections: LoopContextDetection[] = [];
-  let found = false;
 
   traverse(ast, (node) => {
-    if (found) return;
-
     if (isNodeType(node, "ForStatement")) {
-      found = true;
       detections.push({
         topicSlug: "for-loop-basics",
         detected: true,

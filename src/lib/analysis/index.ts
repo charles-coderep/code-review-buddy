@@ -3,7 +3,7 @@
 // Coordinates all detectors and produces analysis results
 // =============================================
 
-import { parseCode, detectLanguage, type CodeLanguage, type ParsedCode } from "./parser";
+import { parseCode, detectLanguage, traverse, isNodeType, type CodeLanguage, type ParsedCode } from "./parser";
 import { detectArrayMethods } from "./detectors/arrayMethods";
 import { detectAsyncPatterns } from "./detectors/asyncPatterns";
 import { detectReactHooks } from "./detectors/reactHooks";
@@ -58,6 +58,7 @@ export interface Detection {
   isNegative: boolean;
   isIdiomatic: boolean;
   isTrivial?: boolean;
+  isInferred?: boolean;
   location?: { line: number; column: number };
   details?: string;
   source?: "babel" | "eslint" | "dataflow";
@@ -76,6 +77,7 @@ export interface AnalysisSummary {
   totalDetections: number;
   positiveCount: number;
   negativeCount: number;
+  neutralCount: number;
   idiomaticCount: number;
   isReact: boolean;
   hasTypeScript: boolean;
@@ -160,7 +162,36 @@ export function analyzeCode(
 
   // Run ESLint detectors on the raw code
   const eslintDetections = analyzeWithESLint(code, parsed.isReact, parsed.hasTypeScript);
-  allDetections.push(...eslintDetections);
+
+  // Filter out no-magic-numbers violations inside array expressions (data values, not magic numbers)
+  const arrayLiteralNumberLocations = new Set<string>();
+  traverse(parsed.ast, (node) => {
+    if (isNodeType<{ elements?: Array<{ type?: string; loc?: { start?: { line: number; column: number } } }> }>(node, "ArrayExpression")) {
+      const arrNode = node as { elements?: Array<{ type?: string; loc?: { start?: { line: number; column: number } } }> };
+      for (const el of arrNode.elements ?? []) {
+        if (el?.type === "NumericLiteral" && el.loc?.start) {
+          // ESLint columns are 1-based, Babel columns are 0-based
+          arrayLiteralNumberLocations.add(`${el.loc.start.line}:${el.loc.start.column + 1}`);
+        }
+        // Also handle UnaryExpression wrapping negative numbers like -1
+        if (el?.type === "UnaryExpression") {
+          const unary = el as { argument?: { type?: string; loc?: { start?: { line: number; column: number } } }; loc?: { start?: { line: number; column: number } } };
+          if (unary.loc?.start) {
+            arrayLiteralNumberLocations.add(`${unary.loc.start.line}:${unary.loc.start.column + 1}`);
+          }
+        }
+      }
+    }
+  });
+
+  const filteredEslintDetections = eslintDetections.filter((d) => {
+    if (d.topicSlug === "no-magic-numbers" && d.location) {
+      return !arrayLiteralNumberLocations.has(`${d.location.line}:${d.location.column}`);
+    }
+    return true;
+  });
+
+  allDetections.push(...filteredEslintDetections);
 
   // Run data flow detectors on the AST
   const dataFlowDetections = analyzeDataFlow(parsed.ast, parsed.isReact);
@@ -171,8 +202,9 @@ export function analyzeCode(
   allDetections.push(...inferredPositives);
 
   // Build summary
-  const positiveFindings = allDetections.filter((d) => d.isPositive && !d.isNegative);
+  const positiveFindings = allDetections.filter((d) => d.isPositive && !d.isNegative && !d.isInferred);
   const issuesFound = allDetections.filter((d) => d.isNegative);
+  const neutralFindings = allDetections.filter((d) => d.isInferred === true);
   const idiomaticFindings = allDetections.filter((d) => d.isIdiomatic);
 
   // Get unique topics
@@ -193,6 +225,7 @@ export function analyzeCode(
     totalDetections: allDetections.length,
     positiveCount: positiveFindings.length,
     negativeCount: issuesFound.length,
+    neutralCount: neutralFindings.length,
     idiomaticCount: idiomaticFindings.length,
     isReact: parsed.isReact,
     hasTypeScript: parsed.hasTypeScript,
@@ -273,6 +306,7 @@ export function inferPositiveDetections(allDetections: Detection[], isReact: boo
       isNegative: false,
       isIdiomatic: false,
       isTrivial: false,
+      isInferred: true,
       details: `Correct usage inferred: ${config.description} (${metPrereqs.join(", ")} detected, no violations)`,
       source: "eslint",
     });
@@ -312,6 +346,7 @@ export function inferPositiveDetections(allDetections: Detection[], isReact: boo
       isNegative: false,
       isIdiomatic: false,
       isTrivial: false,
+      isInferred: true,
       details: `Correct usage inferred: used ${metPrereqs.join(", ")} without triggering ${topic.name} issue`,
       source: "dataflow",
     });
@@ -442,6 +477,7 @@ export function serializeAnalysis(analysis: AnalysisResult): object {
       totalDetections: analysis.summary.totalDetections,
       positiveCount: analysis.summary.positiveCount,
       negativeCount: analysis.summary.negativeCount,
+      neutralCount: analysis.summary.neutralCount,
       idiomaticCount: analysis.summary.idiomaticCount,
       topicsCovered: analysis.summary.topicsCovered,
     },
@@ -452,6 +488,7 @@ export function serializeAnalysis(analysis: AnalysisResult): object {
       isNegative: d.isNegative,
       isIdiomatic: d.isIdiomatic,
       isTrivial: d.isTrivial,
+      isInferred: d.isInferred,
       location: d.location,
       details: d.details,
       source: d.source,

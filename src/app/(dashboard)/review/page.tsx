@@ -11,6 +11,8 @@ import {
   deleteSnippet,
   getUserSnippets,
   getSnippet,
+  updateSnippetCoaching,
+  clearSnippetCoaching,
   type SnippetListItem,
 } from "@/app/actions/snippets";
 import { ReviewResults } from "@/components/review/review-results";
@@ -74,12 +76,15 @@ export default function ReviewPage() {
   const [showLibrary, setShowLibrary] = useState(true);
   const [mobileLibraryOpen, setMobileLibraryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isNewSnippetActive, setIsNewSnippetActive] = useState(false);
 
   // -- Refs --
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const workerRef = useRef<Worker | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const codeAtCoachingRef = useRef<string>("");
+  const draftCodeRef = useRef<string>("");
+  const draftTitleRef = useRef<string>("Untitled");
 
   // =============================================
   // Load snippets on mount
@@ -134,19 +139,27 @@ export default function ReviewPage() {
       const newCode = value ?? "";
       setCode(newCode);
       setIsDirty(true);
+      // Keep draft refs in sync when editing the draft
+      if (isNewSnippetActive && !activeSnippetId) {
+        draftCodeRef.current = newCode;
+      }
       if (result && newCode !== codeAtCoachingRef.current) {
         setIsStale(true);
       } else if (result && newCode === codeAtCoachingRef.current) {
         setIsStale(false);
       }
     },
-    [result]
+    [result, isNewSnippetActive, activeSnippetId]
   );
 
   const handleTitleChange = useCallback((newTitle: string) => {
     setTitle(newTitle);
     setIsDirty(true);
-  }, []);
+    // Keep draft refs in sync when editing the draft
+    if (isNewSnippetActive && !activeSnippetId) {
+      draftTitleRef.current = newTitle;
+    }
+  }, [isNewSnippetActive, activeSnippetId]);
 
   const refreshSnippetList = useCallback(async () => {
     const res = await getUserSnippets();
@@ -155,6 +168,11 @@ export default function ReviewPage() {
 
   const handleLoadSnippet = useCallback(
     async (id: string) => {
+      // Preserve draft state if navigating away from an unsaved draft
+      if (isNewSnippetActive && !activeSnippetId) {
+        draftCodeRef.current = code;
+        draftTitleRef.current = title;
+      }
       const res = await getSnippet(id);
       if (res.success && res.data) {
         setActiveSnippetId(res.data.id);
@@ -162,13 +180,22 @@ export default function ReviewPage() {
         setCode(res.data.code);
         setIsDirty(false);
         setIsStale(false);
-        setResult(null);
         setConsoleEntries([]);
         setError("");
+
+        // Restore cached coaching if available
+        const cached = res.data.cachedCoaching as ReviewResult | null;
+        if (cached && cached.success) {
+          setResult(cached);
+          codeAtCoachingRef.current = res.data.code;
+          setActiveTab("coaching");
+        } else {
+          setResult(null);
+        }
       }
       setMobileLibraryOpen(false);
     },
-    []
+    [isNewSnippetActive, activeSnippetId, code, title]
   );
 
   const handleSave = useCallback(async () => {
@@ -176,10 +203,23 @@ export default function ReviewPage() {
     try {
       if (activeSnippetId) {
         await updateSnippet(activeSnippetId, { title, code, language });
+
+        // If code changed from what was coached, clear cached coaching
+        if (result && code !== codeAtCoachingRef.current) {
+          clearSnippetCoaching(activeSnippetId);
+          setResult(null);
+          setIsStale(false);
+        }
       } else {
         const res = await createSnippet({ title, code, language });
         if (res.success && res.data) {
           setActiveSnippetId(res.data.id);
+          setIsNewSnippetActive(false);
+
+          // Cache coaching if it matches current code
+          if (result && result.success && code === codeAtCoachingRef.current) {
+            updateSnippetCoaching(res.data.id, result);
+          }
         }
       }
       setIsDirty(false);
@@ -187,13 +227,29 @@ export default function ReviewPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [activeSnippetId, title, code, language, refreshSnippetList]);
+  }, [activeSnippetId, title, code, language, refreshSnippetList, result]);
 
   const handleNewSnippet = useCallback(() => {
     setActiveSnippetId(null);
+    setIsNewSnippetActive(true);
+    draftCodeRef.current = "";
+    draftTitleRef.current = "Untitled";
     setTitle("Untitled");
     setCode("");
     setIsDirty(false);
+    setIsStale(false);
+    setResult(null);
+    setConsoleEntries([]);
+    setError("");
+    setMobileLibraryOpen(false);
+  }, []);
+
+  const handleSelectDraft = useCallback(() => {
+    // Restore draft state from refs
+    setActiveSnippetId(null);
+    setTitle(draftTitleRef.current);
+    setCode(draftCodeRef.current);
+    setIsDirty(draftCodeRef.current.trim().length > 0);
     setIsStale(false);
     setResult(null);
     setConsoleEntries([]);
@@ -290,6 +346,11 @@ export default function ReviewPage() {
 
     if (reviewResult.success) {
       setResult(reviewResult);
+
+      // Cache coaching result for saved snippets
+      if (activeSnippetId) {
+        updateSnippetCoaching(activeSnippetId, reviewResult);
+      }
     } else {
       setError(reviewResult.error ?? "Something went wrong");
     }
@@ -323,13 +384,15 @@ export default function ReviewPage() {
   // =============================================
   // Shared sub-components
   // =============================================
-  const hasUnsavedDraft = !activeSnippetId && code.trim().length > 0;
+  const hasUnsavedDraft = isNewSnippetActive;
+  const isDraftActive = isNewSnippetActive && !activeSnippetId;
 
   const snippetLibraryProps = {
     snippets,
     activeId: activeSnippetId,
     loading: snippetsLoading,
     onSelect: handleLoadSnippet,
+    onSelectDraft: handleSelectDraft,
     onNew: handleNewSnippet,
     onDelete: handleDeleteSnippet,
     title,
@@ -338,6 +401,8 @@ export default function ReviewPage() {
     isDirty,
     isSaving,
     hasUnsavedDraft,
+    isDraftActive,
+    draftTitle: draftTitleRef.current,
   };
 
   const monacoEditor = (

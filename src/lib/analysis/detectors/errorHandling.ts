@@ -349,13 +349,7 @@ export function detectDestructuring(ast: File): ErrorHandlingDetection[] {
     }
   });
 
-  // Deduplicate
-  const seen = new Set<string>();
-  return detections.filter((d) => {
-    if (seen.has(d.topicSlug)) return false;
-    seen.add(d.topicSlug);
-    return true;
-  });
+  return detections;
 }
 
 /**
@@ -363,11 +357,9 @@ export function detectDestructuring(ast: File): ErrorHandlingDetection[] {
  */
 export function detectSpreadOperator(ast: File): ErrorHandlingDetection[] {
   const detections: ErrorHandlingDetection[] = [];
-  let hasSpread = false;
 
   traverse(ast, (node) => {
-    if (isNodeType(node, "SpreadElement") && !hasSpread) {
-      hasSpread = true;
+    if (isNodeType(node, "SpreadElement")) {
       detections.push({
         topicSlug: "spread-operator",
         detected: true,

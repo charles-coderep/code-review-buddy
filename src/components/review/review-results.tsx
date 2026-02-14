@@ -19,6 +19,7 @@ import {
   Braces,
   Shield,
   GitBranch,
+  Activity,
 } from "lucide-react";
 
 interface ReviewResultData {
@@ -30,6 +31,7 @@ interface ReviewResultData {
   skillChanges?: Array<{
     topicSlug: string;
     topicName: string;
+    tier: "scored" | "neutral";
     ratingBefore: number;
     ratingAfter: number;
     change: number;
@@ -42,6 +44,7 @@ interface ReviewResultData {
   analysisPreview?: {
     issuesCount: number;
     positiveCount: number;
+    neutralCount: number;
     topicsDetected: string[];
   };
   engineDetails?: {
@@ -54,6 +57,7 @@ interface ReviewResultData {
       isPositive: boolean;
       isNegative: boolean;
       isIdiomatic: boolean;
+      isInferred?: boolean;
       details?: string;
       location?: { line: number; column: number };
       source?: "babel" | "eslint" | "dataflow";
@@ -72,6 +76,23 @@ interface ReviewResultData {
     }>;
     scoringSource: "ai" | "ast-fallback";
   };
+  scoringAudit?: Array<{
+    topicSlug: string;
+    topicName: string;
+    tier: "scored" | "neutral";
+    ratingBefore: number;
+    rdBefore: number;
+    volatilityBefore: number;
+    aiScore: number | null;
+    aiReason: string | null;
+    performanceScore: number;
+    expectedScore: number;
+    surprise: number;
+    ratingAfter: number;
+    rdAfter: number;
+    ratingChange: number;
+    errorType: string | null;
+  }>;
 }
 
 function errorTypeBadgeVariant(
@@ -123,61 +144,79 @@ function SkillChanges({
           {changes.map((change, i) => {
             const evaluation = evalMap.get(change.topicSlug);
             const isExpanded = expanded.has(change.topicSlug);
+            const isNeutral = change.tier === "neutral";
             return (
               <div key={i}>
                 {i > 0 && <Separator className="mb-2" />}
                 <div
-                  className={`flex items-center justify-between ${evaluation ? "cursor-pointer" : ""}`}
-                  onClick={() => evaluation && toggleExpand(change.topicSlug)}
+                  className={`flex items-center justify-between ${
+                    isNeutral ? "" : evaluation ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() => !isNeutral && evaluation && toggleExpand(change.topicSlug)}
                 >
                   <div className="flex items-center gap-2">
-                    {evaluation && (
+                    {!isNeutral && evaluation && (
                       isExpanded ? (
                         <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
                       ) : (
                         <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
                       )
                     )}
-                    <span className="text-sm font-medium">
+                    <span className={`text-sm font-medium ${isNeutral ? "text-muted-foreground" : ""}`}>
                       {change.topicName}
                     </span>
-                    {change.errorType && (
+                    {isNeutral ? (
                       <Badge
-                        variant={errorTypeBadgeVariant(change.errorType)}
-                        className="text-xs"
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 bg-muted/30 text-muted-foreground border-border"
                       >
-                        {change.errorType}
+                        NEUTRAL
                       </Badge>
+                    ) : (
+                      change.errorType && (
+                        <Badge
+                          variant={errorTypeBadgeVariant(change.errorType)}
+                          className="text-xs"
+                        >
+                          {change.errorType}
+                        </Badge>
+                      )
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">
-                      {change.ratingBefore}
-                    </span>
-                    <span className="text-muted-foreground">&rarr;</span>
-                    <span>{change.ratingAfter}</span>
-                    <span
-                      className={
-                        change.change > 0
-                          ? "text-green-400"
-                          : change.change < 0
-                            ? "text-red-400"
-                            : "text-muted-foreground"
-                      }
-                    >
-                      {change.change > 0 ? (
-                        <ArrowUp className="h-3 w-3 inline" />
-                      ) : change.change < 0 ? (
-                        <ArrowDown className="h-3 w-3 inline" />
-                      ) : (
-                        <Minus className="h-3 w-3 inline" />
-                      )}
-                      {change.change > 0 ? "+" : ""}
-                      {change.change}
-                    </span>
+                    {isNeutral ? (
+                      <span className="text-xs text-muted-foreground italic">not scored</span>
+                    ) : (
+                      <>
+                        <span className="text-muted-foreground">
+                          {change.ratingBefore}
+                        </span>
+                        <span className="text-muted-foreground">&rarr;</span>
+                        <span>{change.ratingAfter}</span>
+                        <span
+                          className={
+                            change.change > 0
+                              ? "text-green-400"
+                              : change.change < 0
+                                ? "text-red-400"
+                                : "text-muted-foreground"
+                          }
+                        >
+                          {change.change > 0 ? (
+                            <ArrowUp className="h-3 w-3 inline" />
+                          ) : change.change < 0 ? (
+                            <ArrowDown className="h-3 w-3 inline" />
+                          ) : (
+                            <Minus className="h-3 w-3 inline" />
+                          )}
+                          {change.change > 0 ? "+" : ""}
+                          {change.change}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
-                {isExpanded && evaluation && (
+                {!isNeutral && isExpanded && evaluation && (
                   <div className="ml-5 mt-1 text-xs text-muted-foreground bg-muted/30 rounded px-3 py-2 flex items-center gap-2">
                     <span
                       className={`font-mono font-medium shrink-0 ${
@@ -261,11 +300,11 @@ function EngineDetails({
                   <span className="font-medium text-purple-400">
                     {details.detections.filter((d) => d.source === "eslint" && d.isNegative).length}
                   </span>
-                  {details.detections.some((d) => d.source === "eslint" && d.isPositive && !d.isNegative) && (
+                  {details.detections.some((d) => d.source === "eslint" && d.isInferred) && (
                     <>
                       /
-                      <span className="font-medium text-green-400">
-                        {details.detections.filter((d) => d.source === "eslint" && d.isPositive && !d.isNegative).length}
+                      <span className="font-medium text-muted-foreground">
+                        {details.detections.filter((d) => d.source === "eslint" && d.isInferred).length}
                       </span>
                     </>
                   )}
@@ -278,11 +317,11 @@ function EngineDetails({
                   <span className="font-medium text-blue-400">
                     {details.detections.filter((d) => d.source === "dataflow" && d.isNegative).length}
                   </span>
-                  {details.detections.some((d) => d.source === "dataflow" && d.isPositive && !d.isNegative) && (
+                  {details.detections.some((d) => d.source === "dataflow" && d.isInferred) && (
                     <>
                       /
-                      <span className="font-medium text-green-400">
-                        {details.detections.filter((d) => d.source === "dataflow" && d.isPositive && !d.isNegative).length}
+                      <span className="font-medium text-muted-foreground">
+                        {details.detections.filter((d) => d.source === "dataflow" && d.isInferred).length}
                       </span>
                     </>
                   )}
@@ -359,8 +398,8 @@ function EngineDetails({
                     <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                       <Shield className="h-3 w-3 text-purple-400" />
                       ESLint Detections ({eslintDetections.filter((d) => d.isNegative).length} violations
-                      {eslintDetections.some((d) => d.isPositive && !d.isNegative) && (
-                        <>, {eslintDetections.filter((d) => d.isPositive && !d.isNegative).length} correct</>
+                      {eslintDetections.some((d) => d.isInferred) && (
+                        <>, {eslintDetections.filter((d) => d.isInferred).length} inferred</>
                       )})
                     </p>
                     <div className="space-y-1">
@@ -368,13 +407,15 @@ function EngineDetails({
                         <div
                           key={i}
                           className={`flex items-center justify-between text-xs rounded px-3 py-1.5 ${
-                            d.isPositive && !d.isNegative
-                              ? "bg-green-950/20 border border-green-900/20"
-                              : "bg-purple-950/20 border border-purple-900/20"
+                            d.isInferred
+                              ? "bg-muted/20 border border-border"
+                              : d.isPositive && !d.isNegative
+                                ? "bg-green-950/20 border border-green-900/20"
+                                : "bg-purple-950/20 border border-purple-900/20"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <code className={d.isPositive && !d.isNegative ? "text-green-400" : "text-purple-400"}>{d.topicSlug}</code>
+                            <code className={d.isInferred ? "text-muted-foreground" : d.isPositive && !d.isNegative ? "text-green-400" : "text-purple-400"}>{d.topicSlug}</code>
                             {d.location && (
                               <span className="text-muted-foreground">
                                 L{d.location.line}:{d.location.column}
@@ -389,6 +430,14 @@ function EngineDetails({
                               >
                                 <X className="h-2.5 w-2.5 mr-0.5" />
                                 violation
+                              </Badge>
+                            ) : d.isInferred ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] px-1.5 py-0 bg-muted/30 text-muted-foreground border-border"
+                              >
+                                <Minus className="h-2.5 w-2.5 mr-0.5" />
+                                inferred
                               </Badge>
                             ) : d.isPositive ? (
                               <Badge
@@ -417,8 +466,8 @@ function EngineDetails({
                     <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                       <GitBranch className="h-3 w-3 text-blue-400" />
                       Data Flow Detections ({dataflowDetections.filter((d) => d.isNegative).length} issues
-                      {dataflowDetections.some((d) => d.isPositive && !d.isNegative) && (
-                        <>, {dataflowDetections.filter((d) => d.isPositive && !d.isNegative).length} correct</>
+                      {dataflowDetections.some((d) => d.isInferred) && (
+                        <>, {dataflowDetections.filter((d) => d.isInferred).length} inferred</>
                       )})
                     </p>
                     <div className="space-y-1">
@@ -426,13 +475,15 @@ function EngineDetails({
                         <div
                           key={i}
                           className={`flex items-center justify-between text-xs rounded px-3 py-1.5 ${
-                            d.isPositive && !d.isNegative
-                              ? "bg-green-950/20 border border-green-900/20"
-                              : "bg-blue-950/20 border border-blue-900/20"
+                            d.isInferred
+                              ? "bg-muted/20 border border-border"
+                              : d.isPositive && !d.isNegative
+                                ? "bg-green-950/20 border border-green-900/20"
+                                : "bg-blue-950/20 border border-blue-900/20"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <code className={d.isPositive && !d.isNegative ? "text-green-400" : "text-blue-400"}>{d.topicSlug}</code>
+                            <code className={d.isInferred ? "text-muted-foreground" : d.isPositive && !d.isNegative ? "text-green-400" : "text-blue-400"}>{d.topicSlug}</code>
                             {d.location && (
                               <span className="text-muted-foreground">
                                 L{d.location.line}:{d.location.column}
@@ -447,6 +498,14 @@ function EngineDetails({
                               >
                                 <X className="h-2.5 w-2.5 mr-0.5" />
                                 issue
+                              </Badge>
+                            ) : d.isInferred ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] px-1.5 py-0 bg-muted/30 text-muted-foreground border-border"
+                              >
+                                <Minus className="h-2.5 w-2.5 mr-0.5" />
+                                inferred
                               </Badge>
                             ) : d.isPositive ? (
                               <Badge
@@ -511,6 +570,186 @@ function EngineDetails({
   );
 }
 
+function surpriseLabel(surprise: number): { text: string; color: string } {
+  if (surprise >= 0.3) return { text: "Big Win", color: "text-green-400" };
+  if (surprise > 0.05) return { text: "Win", color: "text-green-400" };
+  if (surprise > -0.05) return { text: "Neutral", color: "text-muted-foreground" };
+  if (surprise > -0.3) return { text: "Miss", color: "text-red-400" };
+  return { text: "Big Miss", color: "text-red-400" };
+}
+
+function ScoringAudit({
+  audit,
+}: {
+  audit: NonNullable<ReviewResultData["scoringAudit"]>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Card className="border-muted">
+      <CardHeader className="pb-0">
+        <Button
+          variant="ghost"
+          className="w-full justify-between p-0 h-auto hover:bg-transparent cursor-pointer"
+          onClick={() => setOpen(!open)}
+        >
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5" />
+            Scoring Audit Log
+          </CardTitle>
+          {open ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </Button>
+      </CardHeader>
+      {open && (
+        <CardContent className="pt-4 space-y-2">
+          {audit.map((entry, i) => {
+            const isNeutral = entry.tier === "neutral";
+
+            if (isNeutral) {
+              return (
+                <div
+                  key={i}
+                  className="text-xs rounded px-3 py-2.5 space-y-1 border bg-muted/20 border-border"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-muted-foreground text-sm">
+                      {entry.topicName}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 bg-muted/30 text-muted-foreground border-border"
+                    >
+                      NEUTRAL
+                    </Badge>
+                  </div>
+                  <div className="text-muted-foreground font-mono text-[11px]">
+                    Inferred from absence of violations — not scored, no rating change
+                  </div>
+                </div>
+              );
+            }
+
+            const label = surpriseLabel(entry.surprise);
+            const isGain = entry.ratingChange > 0;
+            const isLoss = entry.ratingChange < 0;
+            const aiOverridden =
+              entry.aiScore !== null &&
+              Math.round(entry.aiScore * 100) !== Math.round(entry.performanceScore * 100);
+
+            return (
+              <div
+                key={i}
+                className={`text-xs rounded px-3 py-2.5 space-y-1.5 border ${
+                  isGain
+                    ? "bg-green-950/20 border-green-900/20"
+                    : isLoss
+                      ? "bg-red-950/20 border-red-900/20"
+                      : "bg-muted/30 border-border"
+                }`}
+              >
+                {/* Topic header */}
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-foreground text-sm">
+                    {entry.topicName}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {entry.errorType && (
+                      <Badge
+                        variant={errorTypeBadgeVariant(entry.errorType)}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {entry.errorType}
+                      </Badge>
+                    )}
+                    <span
+                      className={`font-mono font-semibold ${
+                        isGain
+                          ? "text-green-400"
+                          : isLoss
+                            ? "text-red-400"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {isGain ? "+" : ""}
+                      {entry.ratingChange}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Audit trail */}
+                <div className="text-muted-foreground font-mono leading-relaxed space-y-0.5">
+                  <div>
+                    Rated{" "}
+                    <span className="text-foreground">{entry.ratingBefore}</span>
+                    {" "}(RD {entry.rdBefore}, σ {entry.volatilityBefore}) vs
+                    Difficulty 1500
+                  </div>
+                  <div>
+                    Expected:{" "}
+                    <span className="text-foreground">
+                      {entry.expectedScore.toFixed(2)}
+                    </span>
+                    {" | "}Actual:{" "}
+                    <span className="text-foreground">
+                      {entry.performanceScore.toFixed(2)}
+                    </span>
+                    {aiOverridden && (
+                      <span className="text-yellow-400">
+                        {" "}(AI: {entry.aiScore!.toFixed(1)} &rarr; {entry.errorType} override)
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    Surprise:{" "}
+                    <span className={label.color}>
+                      {entry.surprise > 0 ? "+" : ""}
+                      {entry.surprise.toFixed(2)} ({label.text})
+                    </span>
+                  </div>
+                  <div>
+                    Result:{" "}
+                    <span className="text-foreground">{entry.ratingBefore}</span>
+                    {" \u2192 "}
+                    <span
+                      className={
+                        isGain
+                          ? "text-green-400"
+                          : isLoss
+                            ? "text-red-400"
+                            : "text-foreground"
+                      }
+                    >
+                      {entry.ratingAfter}
+                    </span>
+                    {" "}
+                    <span
+                      className={
+                        isGain
+                          ? "text-green-400"
+                          : isLoss
+                            ? "text-red-400"
+                            : "text-muted-foreground"
+                      }
+                    >
+                      ({isGain ? "+" : ""}
+                      {entry.ratingChange})
+                    </span>
+                    {" | "}RD: {entry.rdBefore} &rarr; {entry.rdAfter}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 export function ReviewResults({ result }: { result: ReviewResultData }) {
   return (
     <div className="space-y-6">
@@ -554,6 +793,14 @@ export function ReviewResults({ result }: { result: ReviewResultData }) {
             </span>{" "}
             issues
           </span>
+          {result.analysisPreview.neutralCount > 0 && (
+            <span className="text-muted-foreground">
+              <span className="font-medium text-muted-foreground">
+                {result.analysisPreview.neutralCount}
+              </span>{" "}
+              neutral
+            </span>
+          )}
         </div>
       )}
 
@@ -599,6 +846,11 @@ export function ReviewResults({ result }: { result: ReviewResultData }) {
             </CardContent>
           </Card>
         )}
+
+      {/* Scoring audit log (collapsible) */}
+      {result.scoringAudit && result.scoringAudit.length > 0 && (
+        <ScoringAudit audit={result.scoringAudit} />
+      )}
 
       {/* Engine details (collapsible) */}
       {result.engineDetails && <EngineDetails details={result.engineDetails} />}

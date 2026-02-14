@@ -20,6 +20,8 @@ AI-powered coding coach using Glicko-2 ratings to track JavaScript/React skill m
 
 **Total topics: 347** (181 Babel + 152 ESLint + 14 Data Flow)
 
+**Detection Quality & Scoring Audit: COMPLETE (Phase 10)** — Fixed false positives (deep-nesting double-count, magic-numbers noise, no-var inflation). Added scoring audit log showing full Glicko-2 thought process per topic. UI fixes for hydration errors, cursor-pointer, and layout reorganization.
+
 **Pipeline:**
 
 ```
@@ -61,7 +63,7 @@ src/
 │   └── page.tsx               # Landing page
 ├── components/
 │   ├── review/
-│   │   ├── review-results.tsx # Results display (feedback + skill changes + engine details)
+│   │   ├── review-results.tsx # Results display (feedback + skill changes + scoring audit + engine details)
 │   │   ├── console-output.tsx # Console output pane (captures console.log/warn/error/info)
 │   │   ├── snippet-library.tsx # Left sidebar: user's saved snippets list with CRUD
 │   │   └── pipeline-progress.tsx # Pipeline animation (7 stages, extracted from page)
@@ -75,7 +77,7 @@ src/
 │   │   ├── parser.ts          # Babel AST parser + traverse helpers
 │   │   ├── index.ts           # Analysis orchestrator (runs all detectors + ESLint)
 │   │   ├── eslintDetector.ts  # ESLint programmatic analysis (Linter class, ~120 rules)
-│   │   ├── dataFlowDetector.ts # Data flow analysis (12 semantic detectors)
+│   │   ├── dataFlowDetector.ts # Data flow analysis (14 semantic detectors)
 │   │   ├── typeInference.ts    # Type inference + alias tracking utility
 │   │   └── detectors/         # AST detector files (one per category, 30 total)
 │   │       ├── arrayMethods.ts          # map, filter, reduce, find, some/every, forEach, chaining
@@ -122,7 +124,7 @@ scripts/
 ├── eslint-topics.json         # Generated: ~152 ESLint topics for DB seeding
 ├── eslint-overlap-map.json    # Generated: ESLint rule → existing Babel slug mapping
 ├── eslint-prerequisites.json  # ESLint topic → Babel prerequisite mappings for positive inference
-└── dataflow-topics.json       # 12 data flow topic definitions for DB seeding (includes prerequisites)
+└── dataflow-topics.json       # 14 data flow topic definitions for DB seeding (includes prerequisites)
 public/
 └── sandbox-worker.js          # Web Worker for sandboxed JS execution (console capture, 3s timeout)
 prisma/
@@ -158,8 +160,6 @@ interface Detection {
 }
 ```
 
-1
-
 ### Detector Registration
 
 In `src/lib/analysis/index.ts`, `analyzeCode()` calls:
@@ -168,7 +168,7 @@ In `src/lib/analysis/index.ts`, `analyzeCode()` calls:
 - **Always (JS — expanded 17):** detectArrayMutationMethods, detectStringMethods, detectObjectMethods, detectNumberMath, detectJsonOperations, detectModernOperators, detectControlFlow, detectClassSyntax, detectModulePatterns, detectMapSetCollections, detectTimersScheduling, detectDateHandling, detectRegexPatterns, detectDomOperations, detectBrowserApis, detectObserverApis, detectAntiPatterns
 - **React only:** detectReactHooks, detectJSXPatterns, detectAdvancedHooks, detectComponentPatterns, detectStatePatterns, detectAdvancedReactPatterns, detectErrorBoundaries
 - **ESLint (always, after Babel):** `analyzeWithESLint(code, isReact, hasTypeScript)` — runs ~120 rules, returns `Detection[]` with `source: "eslint"`
-- **Data Flow (always, after ESLint):** `analyzeDataFlow(ast, isReact)` — 12 semantic detectors, returns `Detection[]` with `source: "dataflow"`
+- **Data Flow (always, after ESLint):** `analyzeDataFlow(ast, isReact)` — 14 semantic detectors, returns `Detection[]` with `source: "dataflow"`
 
 ### ESLint Detection Layer
 
@@ -207,7 +207,7 @@ The data flow detector runs as a third detection pass after Babel and ESLint. It
 **Key design:**
 
 - **Alias tracking foundation:** `typeInference.ts` extended with `buildAliasMap(ast, typeMap)` — tracks when variables point to the same object/array, detects property assignments and mutations through aliases.
-- **12 detectors, 2 React-only:** JS detectors always run; `state-mutation-react` and `missing-cleanup-effect` only run when React is detected.
+- **14 detectors, 2 React-only:** JS detectors always run; `state-mutation-react` and `missing-cleanup-effect` only run when React is detected.
 - **All detections:** `isPositive: false, isNegative: true` (semantic issues only). Tagged `source: "dataflow"`.
 
 **Detectors:**
@@ -228,19 +228,24 @@ The data flow detector runs as a third detection pass after Babel and ESLint. It
 | `shallow-copy-nested-mutation` | FUNDAMENTALS | Spread/Object.assign creates shallow copy, then nested property mutated through copy affects original |
 | `array-self-mutation-in-iteration` | FUNDAMENTALS | Array mutated (push/pop/splice) inside its own iteration callback (map/forEach/filter) |
 
-**Topic definitions:** `scripts/dataflow-topics.json` (12 topics). Merged with Babel + ESLint topics in `prisma/seed.ts`.
+**Topic definitions:** `scripts/dataflow-topics.json` (14 topics). Merged with Babel + ESLint topics in `prisma/seed.ts`.
 
 ### Scoring Pipeline
 
 1. Babel AST detectors run → produce `Detection[]` with topic slugs (source: "babel"), both positive and negative
 2. ESLint Linter runs → produce additional `Detection[]` (source: "eslint"), violations only (isNegative: true)
 3. Data Flow analyzer runs → produce additional `Detection[]` (source: "dataflow"), issues only (isNegative: true)
-4. Positive Inference runs → `inferPositiveDetections()` cross-references Babel detections with ESLint/Data Flow prerequisites. If prerequisites met and rule didn't fire, creates positive Detection (isPositive: true, source matches origin layer)
-5. All detections merged, sent to Grok AI with the code (split by source and positive/negative in prompt)
-6. AI returns `TOPIC_SCORES` block: `[{ slug, score (0-1), reason }]`
-7. `parseTopicScores()` extracts scores — supports complete blocks, and recovers partial scores from truncated responses via `repairTruncatedScoresJson()`
-8. AI scores drive Glicko-2 rating updates (with AST `scoreTopicPerformance()` as fallback)
-9. `scoringSource` field in engine details indicates "ai" or "ast-fallback"
+4. Positive Inference runs → `inferPositiveDetections()` cross-references Babel detections with ESLint/Data Flow prerequisites. If prerequisites met and rule didn't fire, creates positive Detection (isPositive: true, isInferred: true, source matches origin layer)
+5. **Neutral Tier filtering** → Inferred detections (`isInferred: true`) are classified as "neutral" — displayed in UI but excluded from AI scoring prompt and Glicko-2 updates. Only directly-observed topics (Babel positives/negatives, ESLint/DataFlow violations) are sent to the AI.
+6. Scorable detections merged, sent to Grok AI with the code (split by source in prompt)
+7. AI returns `TOPIC_SCORES` block: `[{ slug, score (0-1), reason }]`
+8. `parseTopicScores()` extracts scores — supports complete blocks, and recovers partial scores from truncated responses via `repairTruncatedScoresJson()`
+9. For scores < 0.5, error classifier (`classifyError()`) may override the performance score based on user history (SLIP=0.6, MISTAKE=0.3, MISCONCEPTION=0.0)
+10. `calculateExpectedScore()` computes what Glicko-2 expects based on current rating vs difficulty 1500
+11. `updateRating()` runs Glicko-2 math: compares actual performance score to expected, updates rating/RD/volatility
+12. Neutral topics get `tier: "neutral"` entries in `skillChanges` and `scoringAudit` with zero changes — displayed but no rating impact
+13. `scoringAudit` array captures the full chain per topic: input state → AI score → expected score → surprise → error classification → rating update
+14. `scoringSource` field in engine details indicates "ai" or "ast-fallback"
 
 **Token limit:** `MAX_FEEDBACK_TOKENS: 4096` in constants.ts. With 50+ topics to score, each needing ~30-35 tokens for the JSON entry, the TOPIC_SCORES block alone can consume ~2000+ tokens. The 4096 limit gives ample room for both coaching text and scoring.
 
@@ -916,10 +921,10 @@ The analysis pipeline has three detection layers followed by AI evaluation:
 **1c. Semantic Analysis (Data Flow — Custom)**
 
 - **Role:** Catch semantic issues that syntax matching and lint rules cannot detect
-- **How:** Alias tracking + type inference on AST, then 12 specialized detectors
+- **How:** Alias tracking + type inference on AST, then 14 specialized detectors
 - **Output:** List of semantic detections, `source: "dataflow"`, always `isNegative: true`
 - **Strength:** Catches shared object mutation, missing array callback returns, React state mutation, deep nesting, long parameter lists
-- **Topics:** 12 (object-reference-sharing, object-spread-missing, array-method-no-return, var-used-before-init, array-as-object, state-mutation-react, nested-ternary, deep-nesting, long-parameter-list, missing-cleanup-effect, loop-bounds-off-by-one, string-arithmetic-coercion)
+- **Topics:** 14 (object-reference-sharing, object-spread-missing, array-method-no-return, var-used-before-init, array-as-object, state-mutation-react, nested-ternary, deep-nesting, long-parameter-list, missing-cleanup-effect, loop-bounds-off-by-one, string-arithmetic-coercion, shallow-copy-nested-mutation, array-self-mutation-in-iteration)
 
 **1d. Positive Inference (Cross-Layer)**
 
@@ -988,6 +993,8 @@ The system prompt includes critical scoring rules to prevent generous scores tha
 - Type confusion (e.g., array used with string keys) = 0.3 or lower
 - "Demonstrates awareness" is not correct usage — relying on `var` hoisting to read `undefined` values = 0.0
 - When in doubt, score lower — generous scores hide real skill gaps
+- Engine-detected correct usage (Positive) with correct code must score 0.6+ — do not penalize simple-but-correct usage as a Mistake
+- Absence-based topics (e.g., `no-var-usage`) do not emit positive detections — only fire negative when the bad pattern is present
 
 ### Framework Context Detection
 
@@ -1074,9 +1081,9 @@ When user fails Topic X, check all prerequisites. Find lowest weak prerequisite 
 ### Phase 6: Data Flow Detection
 
 - Alias tracking in typeInference.ts (buildAliasMap)
-- 12 semantic detectors in dataFlowDetector.ts
+- 14 semantic detectors in dataFlowDetector.ts
 - Catches: shared object mutation, missing returns, React state mutation, deep nesting, long params, loop bounds off-by-one, string arithmetic coercion
-- 12 new topic markers in DB (347 total)
+- 14 new topic markers in DB (347 total)
 - Three-layer detection pipeline (Babel + ESLint + Data Flow → AI → Glicko-2)
 
 ### Phase 7: Detection Quality & Coaching Fixes
@@ -1162,3 +1169,36 @@ When user fails Topic X, check all prerequisites. Find lowest weak prerequisite 
 
 #### Preserves Existing Systems
 - PipelineProgress animation (extracted to its own component), ReviewResults component, submitReview server action — all unchanged, just relocated into the Coaching tab of the right pane.
+
+#### Phase 9 Bug Fix: for-in slug misclassification
+- Fixed `loopsAndContext.ts` — `ForInStatement` was emitting under `for-of-loops` slug instead of `for-in-loops`
+- Removed duplicate `for-in` detection from `loopsAndContext.ts` (canonical detector is in `controlFlow.ts`)
+
+### Phase 10: Detection Quality Fixes & Scoring Audit Log
+
+#### False Positive Fixes
+- **`deep-nesting` false positive** — `dataFlowDetector.ts` was double-counting: `BlockStatement` counted alongside control structures. Fixed by removing `BlockStatement` from nesting check and adding function boundary depth resets. `function→for→if` now correctly = depth 2 (not 5).
+- **`no-magic-numbers` noise on array literals** — Fixed in two places: Babel detector (`antiPatterns.ts`) now skips `ArrayExpression` parents; ESLint config (`eslintDetector.ts`) expanded ignore list to 0-10.
+- **`no-var-usage` free inflation** — Removed positive emission from `detectNoVarUsage()` in `antiPatterns.ts`. Not using `var` is the baseline, not evidence of skill. Topic now only fires negative when `var` is actually found.
+
+#### AI Scoring Prompt Fix
+- **Rule 11: Engine-detected correct usage** — Added to `grok.ts` system prompt. If engine detects a topic as Positive and the code is actually correct, AI must score 0.6+ (Competent). Prevents AI from penalizing correct-but-simple usage (e.g., `.push()` on `property-access-patterns` scored as MISTAKE).
+
+#### UI Fixes
+- **Nested `<button>` hydration error** — `snippet-library.tsx` outer `<button>` elements changed to `<div role="button">` with keyboard handlers.
+- **Missing cursor-pointer** — Added `cursor-pointer` to all interactive buttons in review page and snippet library (Tailwind v4 doesn't auto-apply).
+- **Layout reorganization** — File controls (title, save, +new) moved to left panel header. Run/Submit moved to mini-toolbar above editor. Visual states for snippet list items (active=white ring, saved=grey, unsaved=translucent).
+
+#### Scoring Audit Log
+- **Backend** (`src/app/actions/review.ts`) — Added `scoringAudit` array to `ReviewResult`. Captures per topic: input state (rating, RD, volatility), AI score, expected score (via `calculateExpectedScore`), surprise delta, error classification override, and final rating update.
+- **Frontend** (`src/components/review/review-results.tsx`) — New collapsible "Scoring Audit Log" section with color-coded cards showing the full Glicko-2 thought process per topic. Green cards for gains, red for losses. Shows expected vs actual, surprise label (Big Win/Win/Neutral/Miss/Big Miss), error classification overrides.
+
+#### Files Changed
+- `src/lib/analysis/dataFlowDetector.ts` — deep-nesting fix
+- `src/lib/analysis/detectors/antiPatterns.ts` — magic numbers + no-var-usage fixes
+- `src/lib/analysis/eslintDetector.ts` — magic numbers ignore list expansion
+- `src/lib/grok.ts` — AI scoring rule 11
+- `src/components/review/snippet-library.tsx` — hydration + layout fixes
+- `src/app/(dashboard)/review/page.tsx` — layout reorganization
+- `src/app/actions/review.ts` — scoring audit data capture
+- `src/components/review/review-results.tsx` — scoring audit UI component
